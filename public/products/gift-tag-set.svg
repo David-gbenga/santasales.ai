@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000">
+  <rect width="800" height="1000" fill="#2f6b5a"/>
+  <rect x="60" y="60" width="680" height="880" rx="12" fill="none" stroke="#f4f7fa" stroke-opacity="0.5" stroke-width="3"/>
+  <g stroke="#f4f7fa" stroke-width="3" fill="none">
+    <!-- large tag -->
+    <path d="M170 250 h300 a14 14 0 0 1 14 14 v172 a14 14 0 0 1 -14 14 h-300 l-70 -100 z" fill="#f4f7fa" fill-opacity="0.12"/>
+    <circle cx="145" cy="350" r="14"/>
+    <!-- medium tag -->
+    <path d="M330 520 h240 a12 12 0 0 1 12 12 v140 a12 12 0 0 1 -12 12 h-240 l-58 -82 z" fill="#f2a541" fill-opacity="0.3"/>
+    <circle cx="300" cy="602" r="12"/>
+    <!-- small tag -->
+    <path d="M200 760 h170 a10 10 0 0 1 10 10 v100 a10 10 0 0 1 -10 10 h-170 l-42 -60 z" fill="#c8324a" fill-opacity="0.45"/>
+    <circle cx="180" cy="820" r="10"/>
+    <!-- string -->
+    <path d="M131 350 C 80 300, 90 200, 160 170" stroke-opacity="0.7"/>
+  </g>
+  <g font-family="Georgia, serif" fill="#f4f7fa">
+    <text x="320" y="365" font-size="40" text-anchor="middle">To: Grandad</text>
+    <text x="440" y="615" font-size="30" text-anchor="middle">From: Mia</text>
+    <text x="285" y="832" font-size="24" text-anchor="middle">With love</text>
+  </g>
+</svg>

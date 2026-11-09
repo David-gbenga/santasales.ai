@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#13233f"/>
+      <stop offset="1" stop-color="#2a4168"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="1000" fill="#f2a541"/>
+  <!-- back phone -->
+  <rect x="150" y="170" width="300" height="600" rx="40" fill="#13233f" opacity="0.35" transform="rotate(-8 300 470)"/>
+  <!-- front phone -->
+  <rect x="330" y="200" width="320" height="640" rx="44" fill="#13233f"/>
+  <rect x="346" y="216" width="288" height="608" rx="32" fill="url(#sky)"/>
+  <path d="M346 700 q 70 -50 144 -10 t 144 -20 v 122 a32 32 0 0 1 -32 32 h-224 a32 32 0 0 1 -32 -32 z" fill="#f4f7fa"/>
+  <g fill="#f4f7fa">
+    <circle cx="390" cy="290" r="5"/><circle cx="470" cy="260" r="3"/><circle cx="560" cy="300" r="6"/>
+    <circle cx="610" cy="380" r="3"/><circle cx="420" cy="400" r="4"/><circle cx="520" cy="440" r="5"/>
+    <circle cx="380" cy="520" r="3"/><circle cx="590" cy="520" r="4"/><circle cx="470" cy="580" r="6"/>
+    <circle cx="560" cy="630" r="3"/><circle cx="400" cy="640" r="4"/>
+  </g>
+  <rect x="450" y="232" width="80" height="10" rx="5" fill="#0d1a31"/>
+</svg>

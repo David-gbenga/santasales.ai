@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000">
+  <rect width="800" height="1000" fill="#c8324a"/>
+  <rect x="60" y="60" width="680" height="880" rx="12" fill="none" stroke="#f4f7fa" stroke-opacity="0.5" stroke-width="3"/>
+  <text x="400" y="170" text-anchor="middle" font-family="Georgia, serif" font-size="64" fill="#f4f7fa">Advent</text>
+  <g font-family="Georgia, serif" font-size="34" fill="#f4f7fa" text-anchor="middle">
+    <g fill="none" stroke="#f4f7fa" stroke-opacity="0.75" stroke-width="2">
+      <rect x="110" y="230" width="130" height="130" rx="8"/><rect x="265" y="230" width="130" height="130" rx="8"/><rect x="420" y="230" width="130" height="130" rx="8"/><rect x="575" y="230" width="115" height="130" rx="8"/>
+      <rect x="110" y="385" width="130" height="130" rx="8"/><rect x="265" y="385" width="130" height="130" rx="8"/><rect x="420" y="385" width="130" height="130" rx="8"/><rect x="575" y="385" width="115" height="130" rx="8"/>
+      <rect x="110" y="540" width="130" height="130" rx="8"/><rect x="265" y="540" width="130" height="130" rx="8"/><rect x="420" y="540" width="130" height="130" rx="8"/><rect x="575" y="540" width="115" height="130" rx="8"/>
+      <rect x="110" y="695" width="130" height="130" rx="8"/><rect x="265" y="695" width="130" height="130" rx="8"/><rect x="420" y="695" width="270" height="130" rx="8" fill="#f2a541" fill-opacity="0.25"/>
+    </g>
+    <text x="175" y="308">1</text><text x="330" y="308">7</text><text x="485" y="308">12</text><text x="632" y="308">3</text>
+    <text x="175" y="463">18</text><text x="330" y="463">5</text><text x="485" y="463">21</text><text x="632" y="463">9</text>
+    <text x="175" y="618">14</text><text x="330" y="618">2</text><text x="485" y="618">20</text><text x="632" y="618">16</text>
+    <text x="175" y="773">11</text><text x="330" y="773">23</text><text x="555" y="773" font-size="44">24</text>
+  </g>
+</svg>
