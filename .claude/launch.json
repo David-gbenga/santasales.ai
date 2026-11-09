@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "prod",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["-y", "pnpm@12.18.0", "start"],
+      "env": { "NODE_OPTIONS": "--experimental-require-module" },
+      "port": 3000
+    }
+  ]
+}
