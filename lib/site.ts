@@ -31,31 +31,6 @@ export const displayPrices = {
   lyrics: "£1.99",
 } as const;
 
-/**
- * Placeholder featured products for the landing page until Phase 2 reads
- * them from Supabase.
- */
-export const featuredPlaceholders = [
-  {
-    name: "Advent activity calendar",
-    blurb: "24 printable doors with a small thing to do each day.",
-    price: "£4.00",
-    swatch: "berry",
-  },
-  {
-    name: "Gift tag set",
-    blurb: "Twelve tags in three sizes, ready for A4 card.",
-    price: "£2.50",
-    swatch: "pine",
-  },
-  {
-    name: "Snowfall phone wallpapers",
-    blurb: "Six wallpapers sized for current iPhone and Android screens.",
-    price: "£1.50",
-    swatch: "ember",
-  },
-] as const;
-
 export const cardSteps = [
   {
     title: "Tell us about them",

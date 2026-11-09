@@ -13,7 +13,7 @@ A Christmas-themed website that sells digital products, showcases external produ
 |---|---|
 | Stack | Next.js (App Router) + TypeScript + Tailwind + React Three Fiber, hosted on Vercel |
 | Data & files | Supabase (Postgres, Storage, Auth) |
-| Payments | Stripe Checkout (hosted) with Stripe Tax |
+| Payments | Stripe Checkout (hosted); Stripe Tax off for now (individual seller, see F2) |
 | AI | Claude API |
 | Analytics | Own `events` table in Supabase, cookie-free |
 | AI pricing model | **Pay before generating** — customer pays, then generates |
@@ -81,7 +81,7 @@ Grid of products → product detail page → Stripe Checkout → secure download
 
 **Acceptance criteria**
 - Products are managed in Supabase (`products` table); files live in a **private** storage bucket.
-- Checkout uses Stripe-hosted Checkout with `automatic_tax` enabled.
+- Checkout uses Stripe-hosted Checkout. ~~`automatic_tax` enabled~~ — **changed 2026-11-09:** Stripe Tax is off because the seller is an individual below the UK VAT threshold; it can be turned back on with `AUTOMATIC_TAX_ENABLED` in `lib/stripe.ts`.
 - Order is marked paid **only** by the verified Stripe webhook (`checkout.session.completed`), never by the success page.
 - Success page shows a download button once the order is paid (polls briefly if the webhook is slower than the redirect).
 - Download route checks the order is paid, then redirects to a Supabase signed URL valid for 24 h.

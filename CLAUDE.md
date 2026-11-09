@@ -13,7 +13,7 @@ A Christmas-themed website: digital product store (Stripe), clickable store-link
 - **3D:** three, @react-three/fiber, @react-three/drei
 - **Motion:** Lenis (smooth scroll), Motion (`motion/react`) for UI transitions — nothing heavier
 - **Data/Auth/Files:** Supabase (Postgres + RLS, Storage, magic-link Auth) via `@supabase/ssr`
-- **Payments:** Stripe Checkout (hosted) + webhooks + Stripe Tax
+- **Payments:** Stripe Checkout (hosted) + webhooks. Stripe Tax is **off** (individual seller below the UK VAT threshold); switch on via `AUTOMATIC_TAX_ENABLED` in `lib/stripe.ts` if that changes
 - **AI:** `@anthropic-ai/sdk` (Claude API)
 - **Rendering cards:** `next/og` (Satori) for PNG, `pdf-lib` for PDF
 - **Charts:** Recharts (admin only)
