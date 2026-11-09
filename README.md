@@ -1,36 +1,62 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Snowpost (working name)
 
-## Getting Started
+A Christmas-themed store: digital downloads, a store-links gallery, AI-written cards and song lyrics (pay first, then generate), and an admin dashboard. See [docs/PRD.md](docs/PRD.md) for requirements and the phased build plan, and [CLAUDE.md](CLAUDE.md) for engineering rules.
 
-First, run the development server:
+## Requirements
+
+- Node.js **22.12 or later** (older 22.x breaks the Tailwind build and Vitest)
+- pnpm 12: `npm i -g pnpm@12.18.0`
+- Docker Desktop (only for running Supabase locally)
+
+## Getting started
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
+cp .env.example .env.local   # then fill in the values
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Supabase
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Schema, RLS policies and private storage buckets live in `supabase/migrations/`. The Supabase CLI runs through `npx`, so nothing needs installing globally.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+**Hosted project (first time):**
 
-## Learn More
+1. Create a project at supabase.com (London region) and enable email magic-link sign-in.
+2. Put the project URL, anon key and service-role key in `.env.local` (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`).
+3. Link and push the migrations:
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   npx supabase login
+   npx supabase link --project-ref <your-project-ref>
+   npx supabase db push --remote   # CLI v3 targets the local stack unless --remote is given
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+**Local stack (optional):** `npx supabase start` runs Postgres, Auth and Storage in Docker and applies the migrations. To check RLS against it:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -f supabase/tests/rls_check.sql
+```
 
-## Deploy on Vercel
+### What the database allows
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+| Table | Public (anon key) | Server (service role) |
+|---|---|---|
+| `products` | Read active rows, without `file_path` | Full |
+| `gallery_items` | Read active rows | Full |
+| `events` | Insert only (type, path, ref_id, referrer) | Full |
+| `orders`, `generations`, `ai_summaries` | Nothing | Full |
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Storage buckets `products`, `generated` and `uploads` are private; files are served through short-lived signed URLs from server routes.
+
+Because anon can't read `products.file_path`, public queries must list columns explicitly (`select('id, slug, name, …')`); `select('*')` fails.
+
+## Scripts
+
+| Command | What it does |
+|---|---|
+| `pnpm dev` | Local dev server |
+| `pnpm build` | Production build |
+| `pnpm lint` / `pnpm typecheck` | ESLint / TypeScript |
+| `pnpm test` | Vitest unit tests |
+| `pnpm test:e2e` | Playwright smoke tests (set `PLAYWRIGHT_BASE_URL` to test a running server) |
