@@ -18,21 +18,24 @@ export type OrderSummary = {
   product: { name: string; slug: string } | null;
 };
 
+type OrderTarget =
+  { kind: "product"; productId: string } | { kind: "card" | "lyrics"; generationId: string };
+
 /** Records the order as pending right after the Checkout Session is created. */
-export async function createPendingOrder(input: {
-  sessionId: string;
-  productId: string;
-  amountPence: number;
-  currency: string;
-}) {
-  const { error } = await createAdminClient().from("orders").insert({
-    stripe_session_id: input.sessionId,
-    kind: "product",
-    product_id: input.productId,
-    amount_pence: input.amountPence,
-    currency: input.currency,
-    status: "pending",
-  });
+export async function createPendingOrder(
+  input: OrderTarget & { sessionId: string; amountPence: number; currency: string },
+) {
+  const { error } = await createAdminClient()
+    .from("orders")
+    .insert({
+      stripe_session_id: input.sessionId,
+      kind: input.kind,
+      product_id: input.kind === "product" ? input.productId : null,
+      generation_id: input.kind === "product" ? null : input.generationId,
+      amount_pence: input.amountPence,
+      currency: input.currency,
+      status: "pending",
+    });
   if (error) throw new Error(`Creating pending order failed: ${error.message}`);
 }
 
@@ -58,7 +61,8 @@ export async function markOrderPaid(session: Stripe.Checkout.Session, paidAt: Da
       stripe_session_id: session.id,
       email: session.customer_details?.email ?? null,
       kind: metadata.kind,
-      product_id: metadata.product_id,
+      product_id: metadata.kind === "product" ? metadata.product_id : null,
+      generation_id: metadata.kind === "product" ? null : metadata.generation_id,
       amount_pence: session.amount_total ?? 0,
       tax_pence: session.total_details?.amount_tax ?? 0,
       currency: session.currency ?? "gbp",

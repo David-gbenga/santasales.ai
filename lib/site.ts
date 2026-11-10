@@ -1,3 +1,6 @@
+import { formatPrice } from "@/lib/format";
+import { CARD_PRICE_PENCE, LYRICS_PRICE_PENCE } from "@/lib/pricing";
+
 /**
  * Brand and landing-page copy. Placeholder values — replace with the real
  * brand name, headline and prices when they're decided (PRD §9, open questions).
@@ -25,10 +28,10 @@ export const legalLinks = [
   { href: "/disclosure", label: "Affiliate disclosure" },
 ] as const;
 
-/** Placeholder prices (PRD A1). Real prices will come from server constants / the DB. */
+/** Display prices, derived from the same constants checkout charges (lib/pricing.ts). */
 export const displayPrices = {
-  card: "£2.99",
-  lyrics: "£1.99",
+  card: formatPrice(CARD_PRICE_PENCE),
+  lyrics: formatPrice(LYRICS_PRICE_PENCE),
 } as const;
 
 export const cardSteps = [

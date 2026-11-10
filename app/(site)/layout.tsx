@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { SiteFooter } from "@/components/sections/site-footer";
 import { SiteHeader } from "@/components/sections/site-header";
 import { PageViewTracker } from "@/components/ui/page-view-tracker";
@@ -10,7 +11,10 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
         {children}
       </main>
       <SiteFooter />
-      <PageViewTracker />
+      {/* The tracker reads the URL; on request-time routes that must sit inside Suspense. */}
+      <Suspense fallback={null}>
+        <PageViewTracker />
+      </Suspense>
     </>
   );
 }
