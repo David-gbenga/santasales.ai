@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { checkoutMetadataSchema, checkoutRequestSchema, stripeSessionIdSchema } from "./validation";
+import {
+  cardInputSchema,
+  checkoutMetadataSchema,
+  checkoutRequestSchema,
+  stripeSessionIdSchema,
+} from "./validation";
 
 const uuid = "28dea5a0-5949-4db1-a20f-acbe4f9dd055";
 
@@ -45,5 +50,39 @@ describe("stripeSessionIdSchema", () => {
     expect(stripeSessionIdSchema.safeParse("cs_live_a1B2c3").success).toBe(true);
     expect(stripeSessionIdSchema.safeParse("pi_123").success).toBe(false);
     expect(stripeSessionIdSchema.safeParse("cs_test_<script>").success).toBe(false);
+  });
+});
+
+describe("cardInputSchema", () => {
+  const base = { recipientName: "Tom", senderName: "Mia", tone: "warm" };
+
+  it("accepts a relationship with no description", () => {
+    expect(cardInputSchema.safeParse({ ...base, relationship: "sibling" }).success).toBe(true);
+  });
+
+  it("accepts a description with no relationship", () => {
+    const parsed = cardInputSchema.parse({
+      ...base,
+      relationship: "",
+      details: "My brother moved to Canada this year.",
+    });
+    expect(parsed.relationship).toBeUndefined();
+  });
+
+  it("needs a relationship or a real description", () => {
+    expect(cardInputSchema.safeParse({ ...base, relationship: "", details: "hi" }).success).toBe(
+      false,
+    );
+  });
+
+  it("caps the description at 500 characters and trims names", () => {
+    expect(
+      cardInputSchema.safeParse({ ...base, relationship: "friend", details: "x".repeat(501) })
+        .success,
+    ).toBe(false);
+    expect(
+      cardInputSchema.parse({ ...base, recipientName: "  Tom  ", relationship: "friend" })
+        .recipientName,
+    ).toBe("Tom");
   });
 });

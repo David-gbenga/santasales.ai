@@ -105,6 +105,7 @@ Masonry/grid of product images, each linking to an external store page.
 - `/api/generate/card` refuses unless the linked order is paid and `regen_count < 3`.
 - Claude writes a message of 30–80 words matching tone and relationship; prompt tells it to stay family-friendly and not to reproduce existing poems or song lyrics.
 - Customer can lightly edit the generated text before final render.
+- **Added 2026-11-10 — own words:** the form's main field is "Describe the card in your own words" (≤ 500 chars) with tap-to-add idea chips; relationship becomes optional when the description says enough, and tone stays as a suggestion. Claude treats the description as the main brief and follows reasonable content/style wishes (mention X, make it rhyme, keep it short) without letting it override the safety and originality rules (prompt `card-v2`).
 - PNG rendered server-side (`next/og` / Satori), PDF made from the PNG (`pdf-lib`), both stored in a private bucket and downloaded via signed URL.
 - P1: optional photo upload (JPEG/PNG, ≤ 5 MB), stored privately, deleted after 30 days.
 
@@ -125,6 +126,17 @@ Masonry/grid of product images, each linking to an external store page.
 - "Generate summary" button sends **aggregated numbers only** (no emails or personal data) to Claude and stores the result in `ai_summaries`.
 - P1: weekly automatic summary via Vercel Cron, protected by `CRON_SECRET`.
 - **Added 2026-11-10 — content management:** admin forms in `/admin` to add and edit products (sellable file → private `products` bucket; preview image → public `media` bucket; name, description, price, active), gallery items (image, title, link, affiliate flag, order, active) and card designs (background image, name, layout, active). Uploads go through server routes using the service role. Until then, content is managed in the Supabase dashboard (see §6a).
+
+### F8. Gift Concierge chat — P1 (added 2026-11-10, built as Phase 5b)
+A chat on the landing page that asks who the gift is for, their budget and style, then recommends shop products (and gallery items, labelled as affiliate links), cards and songs, and starts checkout.
+
+**Acceptance criteria**
+- Claude with tool use (SDK tool runner). Tools only search, describe and start checkout: `search_products`, `list_card_designs`, `draft_card_brief` (turns the chat into the card form's fields), `card_teaser`, `create_checkout_session` (same server prices and pay-first flow as the forms). The agent never sees payment details or changes prices.
+- **Previews are teasers only** (decision 2026-11-10): the design plus one opening line; the full message is written after payment, as with the form. Same later for lyrics.
+- Per-visitor message limits and a daily cap on concierge AI calls; the Anthropic spending limit is the backstop. Concierge model is configurable separately from the card writer.
+- Chats are not stored beyond what a checkout needs; the Privacy page mentions the concierge.
+- Lazy-loaded (landing page stays ≥ 80 mobile Performance); keyboard and screen-reader usable, replies announced politely.
+- Bundles (one payment, one discount) remain P2: v1 recommends several items, each with its own checkout.
 
 ### F7. Legal & trust pages — P0
 Terms (including AI-generated content terms placeholder), Privacy, Refunds (digital goods: customer consent to immediate supply / loss of the 14-day cancellation right under UK consumer law — checkbox or wording at checkout), Affiliate disclosure, Contact.
@@ -249,7 +261,7 @@ You add every key yourself in `.env.local` and the Vercel dashboard.
 ## 9. Risks and open questions
 
 **Risks**
-- **Timeline is tight.** The phased plan below totals roughly 18–22 hours — two long days (≈ 20–25 h with the Phase 6 content forms added 2026-11-10). If you fall behind, cut in this order: photo upload on cards → Resend emails → scheduled summary → lyrics backing track → reduce card designs to 2 → admin content forms (fall back to the Supabase dashboard, §6a).
+- **Timeline is tight.** The phased plan below totals roughly 18–22 hours — two long days (≈ 27–33 h with the Phase 6 content forms and the Phase 5b concierge added 2026-11-10). If you fall behind, cut in this order: photo upload on cards → Resend emails → scheduled summary → lyrics backing track → reduce card designs to 2 → admin content forms (fall back to the Supabase dashboard, §6a) → Gift Concierge (Phase 5b).
 - **Pay-before-generate friction.** Customers can't see AI quality before paying. Mitigate with sample cards on the page, the 3-regeneration allowance and editable text.
 - **Webhook delay.** The success redirect can arrive before the webhook. The studio/success pages poll the order status for up to ~20 seconds.
 - **AI misuse.** Offensive names or messages. Mitigate with input limits, prompt guardrails, and text editing only after AI output.
@@ -309,6 +321,11 @@ Each phase ends with a testable checkpoint. "You provide" lists what's needed **
 - Reuse the pay-first flow; lyrics prompt; PDF/TXT export; optional MP3.
 - ✅ Done: pay → generate → regenerate → download.
 - 🧾 You provide: lyrics price; backing track MP3 (optional).
+
+**Phase 5b — Gift Concierge chat (6–8 h, added 2026-11-10)**
+- Chat widget, tools (F8), teaser previews, checkout hand-off, limits, tests.
+- ✅ Done: a shopper can describe a recipient and budget, get product and card suggestions with a teaser, and land on Stripe Checkout for a card with the form fields pre-filled; limits stop runaway use; landing Lighthouse mobile ≥ 80.
+- 🧾 You provide: whether the concierge should use a cheaper model (e.g. Haiku 5.5) than the card writer.
 
 **Phase 6 — Admin dashboard + AI summary (2–3 h, plus ~2–3 h for content forms)**
 - Magic-link auth + allowlist, KPI cards, charts, top lists, summary generation.

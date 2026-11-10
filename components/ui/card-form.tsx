@@ -12,7 +12,16 @@ type CardFormProps = {
   tones: Record<string, { label: string; hint: string }>;
 };
 
-const DETAILS_MAX = 300;
+const DETAILS_MAX = 500;
+
+/** Starter phrases people can tap to add to their description. */
+const IDEAS = [
+  { label: "A shared memory", text: "Mention the time we " },
+  { label: "Their year", text: "This year they " },
+  { label: "Make it rhyme", text: "Make it rhyme." },
+  { label: "Keep it short", text: "Keep it short and sweet." },
+  { label: "First Christmas apart", text: "It’s our first Christmas apart." },
+] as const;
 
 const fieldClass =
   "mt-2 block w-full rounded-md border border-ink/25 bg-white px-4 py-3 text-base text-ink placeholder:text-ink-muted/70 focus-visible:border-ink";
@@ -23,6 +32,14 @@ export function CardForm({ designs, priceLabel, relationships, tones }: CardForm
   const [status, setStatus] = useState<"idle" | "loading">("idle");
   const [error, setError] = useState("");
   const ids = { details: useId(), detailsHint: useId(), error: useId() };
+
+  function addIdea(text: string) {
+    setDetails((current) => {
+      const joined = current.trim() ? `${current.trim()} ${text}` : text;
+      return joined.slice(0, DETAILS_MAX);
+    });
+    document.getElementById(ids.details)?.focus();
+  }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -129,12 +146,50 @@ export function CardForm({ designs, priceLabel, relationships, tones }: CardForm
             </label>
           </div>
 
+          <div>
+            <label htmlFor={ids.details} className="block font-medium">
+              Describe the card in your own words{" "}
+              <span className="font-normal text-ink-muted">(optional, but it helps)</span>
+            </label>
+            <p id={ids.detailsHint} className="mt-1 text-sm text-ink-muted">
+              Who they are, what happened this year, a memory or in-joke, how you want it to sound.
+              Keep it kind: it goes on their card.
+            </p>
+            <textarea
+              id={ids.details}
+              name="details"
+              rows={5}
+              maxLength={DETAILS_MAX}
+              value={details}
+              onChange={(e) => setDetails(e.target.value)}
+              aria-describedby={ids.detailsHint}
+              placeholder="e.g. My brother moved to Canada this year. He pretends he isn’t homesick. Make it a bit funny and remind him about our Boxing Day football…"
+              className={fieldClass}
+            />
+            <div className="mt-2 flex flex-wrap items-start justify-between gap-2">
+              <div role="group" aria-label="Ideas to add" className="flex flex-wrap gap-2">
+                {IDEAS.map((idea) => (
+                  <button
+                    key={idea.label}
+                    type="button"
+                    onClick={() => addIdea(idea.text)}
+                    className="min-h-9 rounded-full border border-ink/25 bg-white px-3 text-sm font-medium text-ink transition-colors hover:border-ink"
+                  >
+                    + {idea.label}
+                  </button>
+                ))}
+              </div>
+              <p className="shrink-0 text-sm tabular-nums text-ink-muted">
+                {details.length}/{DETAILS_MAX}
+              </p>
+            </div>
+          </div>
+
           <label className="block font-medium">
-            Who are they to you?
-            <select name="relationship" required defaultValue="" className={fieldClass}>
-              <option value="" disabled>
-                Choose one
-              </option>
+            Who are they to you?{" "}
+            <span className="font-normal text-ink-muted">(optional if you’ve said above)</span>
+            <select name="relationship" defaultValue="" className={fieldClass}>
+              <option value="">Not chosen</option>
               {Object.entries(relationships).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
@@ -144,7 +199,9 @@ export function CardForm({ designs, priceLabel, relationships, tones }: CardForm
           </label>
 
           <fieldset>
-            <legend className="font-medium">Tone</legend>
+            <legend className="font-medium">
+              Tone <span className="font-normal text-ink-muted">(your words above win)</span>
+            </legend>
             <div className="mt-2 grid grid-cols-2 gap-3">
               {Object.entries(tones).map(([value, { label, hint }], i) => (
                 <label key={value} className="cursor-pointer">
@@ -163,31 +220,6 @@ export function CardForm({ designs, priceLabel, relationships, tones }: CardForm
               ))}
             </div>
           </fieldset>
-
-          <div>
-            <label htmlFor={ids.details} className="block font-medium">
-              Anything we should mention?{" "}
-              <span className="font-normal text-ink-muted">(optional)</span>
-            </label>
-            <p id={ids.detailsHint} className="mt-1 text-sm text-ink-muted">
-              A shared memory, something they did this year, an in-joke. Keep it kind: it goes on
-              their card.
-            </p>
-            <textarea
-              id={ids.details}
-              name="details"
-              rows={4}
-              maxLength={DETAILS_MAX}
-              value={details}
-              onChange={(e) => setDetails(e.target.value)}
-              aria-describedby={ids.detailsHint}
-              placeholder="e.g. Taught me to bake this year, still beats everyone at Scrabble…"
-              className={fieldClass}
-            />
-            <p className="mt-1 text-right text-sm tabular-nums text-ink-muted">
-              {details.length}/{DETAILS_MAX}
-            </p>
-          </div>
         </fieldset>
 
         <div className="mt-8 border-t border-line-snow pt-6">

@@ -34,13 +34,27 @@ export const RELATIONSHIPS = [
 
 export const CARD_TONES = ["warm", "heartfelt", "funny", "traditional"] as const;
 
-export const cardInputSchema = z.object({
-  recipientName: requiredText(40, "Their name"),
-  senderName: requiredText(40, "Your name"),
-  relationship: z.enum(RELATIONSHIPS),
-  tone: z.enum(CARD_TONES),
-  details: cleanText(300).optional().default(""),
-});
+/** The customer's own description of the card: the main brief when given. */
+export const CARD_BRIEF_MAX = 500;
+/** Without a relationship, the brief has to say enough to write from. */
+const MIN_BRIEF_WITHOUT_RELATIONSHIP = 15;
+
+export const cardInputSchema = z
+  .object({
+    recipientName: requiredText(40, "Their name"),
+    senderName: requiredText(40, "Your name"),
+    // Optional: people can say who the recipient is in their own words instead.
+    relationship: z
+      .union([z.enum(RELATIONSHIPS), z.literal("")])
+      .optional()
+      .transform((r) => r || undefined),
+    tone: z.enum(CARD_TONES),
+    details: cleanText(CARD_BRIEF_MAX).optional().default(""),
+  })
+  .refine((v) => v.relationship || v.details.length >= MIN_BRIEF_WITHOUT_RELATIONSHIP, {
+    message: "tell us who they are to you, or describe the card in your own words",
+    path: ["relationship"],
+  });
 export type CardInput = z.infer<typeof cardInputSchema>;
 
 /** The words on a card. Claude writes these; the buyer may edit them before finishing. */
