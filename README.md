@@ -47,7 +47,9 @@ psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" -f supabase/tests
 | `events` | Insert only (type, path, ref_id, referrer) | Full |
 | `orders`, `generations`, `ai_summaries` | Nothing | Full |
 
-Storage buckets `products`, `generated` and `uploads` are private; files are served through short-lived signed URLs from server routes.
+Storage buckets `products`, `generated` and `uploads` are private; files are served through short-lived signed URLs from server routes. The `media` bucket is public-read for display images (product previews, gallery images, card backgrounds); only the service role can upload, PNG/JPEG/WebP up to 5 MB.
+
+To add products, gallery items or card designs before the Phase 6 admin forms exist, see PRD §6a ("Managing content").
 
 Because anon can't read `products.file_path`, public queries must list columns explicitly (`select('id, slug, name, …')`); `select('*')` fails.
 

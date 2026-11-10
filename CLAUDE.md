@@ -47,7 +47,7 @@ lib/
   stripe.ts               # server-only Stripe client + helpers
   supabase/               # server.ts, client.ts, admin.ts (service role, server-only)
   ai/                     # claude.ts, prompts/card.ts, prompts/lyrics.ts, prompts/summary.ts
-  card-designs.ts         # design definitions
+  card-designs.ts         # loads designs from the card_designs table (not hard-coded)
   analytics.ts            # track() helper using sendBeacon
   validation.ts           # Zod schemas
 supabase/migrations/      # SQL migrations incl. RLS policies
@@ -94,7 +94,8 @@ Keep `.env.example` in sync with this list. Never ask the user to paste key valu
 - Prices come from the database or server constants — never from the client request.
 - Generation routes must check: order paid, `regen_count < 3`, generation not locked.
 - RLS enabled on every table. Anon may only read active `products`/`gallery_items` and insert into `events`.
-- All files (products, generated cards, uploads) in **private** buckets; serve via short-lived signed URLs.
+- All files (products, generated cards, uploads) in **private** buckets; serve via short-lived signed URLs. Exception: the public-read `media` bucket holds display images only (product previews, gallery images, card backgrounds); service role writes, PNG/JPEG/WebP only.
+- Content (products, gallery items, card designs) is data, never code: adding one must not need a deploy (PRD §6a).
 - Validate every API input with Zod; enforce max lengths on all free-text fields.
 - Never send customer emails or other personal data to Claude for the admin summary — aggregated numbers only.
 

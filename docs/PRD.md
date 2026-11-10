@@ -99,7 +99,7 @@ Masonry/grid of product images, each linking to an external store page.
 
 ### F4. AI Christmas card generator — P0 (photo upload P1)
 **Acceptance criteria**
-- 3–4 designs at launch, defined in code (`lib/card-designs.ts`) with a background image and text layout.
+- 3–4 designs at launch. ~~Defined in code (`lib/card-designs.ts`)~~ — **changed 2026-11-10:** designs live in a `card_designs` table (name, background image in the public `media` bucket, text layout, sort, active) so new designs can be added without a code change or redeploy.
 - Inputs validated server-side (length limits, required fields).
 - Pay first: form inputs saved to a pending `generations` row → Stripe Checkout with `generation_id` in metadata → webhook marks paid.
 - `/api/generate/card` refuses unless the linked order is paid and `regen_count < 3`.
@@ -124,6 +124,7 @@ Masonry/grid of product images, each linking to an external store page.
 - Sales data comes from the `orders` table (written by the webhook), so the dashboard doesn't call Stripe on every load.
 - "Generate summary" button sends **aggregated numbers only** (no emails or personal data) to Claude and stores the result in `ai_summaries`.
 - P1: weekly automatic summary via Vercel Cron, protected by `CRON_SECRET`.
+- **Added 2026-11-10 — content management:** admin forms in `/admin` to add and edit products (sellable file → private `products` bucket; preview image → public `media` bucket; name, description, price, active), gallery items (image, title, link, affiliate flag, order, active) and card designs (background image, name, layout, active). Uploads go through server routes using the service role. Until then, content is managed in the Supabase dashboard (see §6a).
 
 ### F7. Legal & trust pages — P0
 Terms (including AI-generated content terms placeholder), Privacy, Refunds (digital goods: customer consent to immediate supply / loss of the 14-day cancellation right under UK consumer law — checkbox or wording at checkout), Affiliate disclosure, Contact.
@@ -182,9 +183,30 @@ events (
 ai_summaries (
   id uuid pk, period_start date, period_end date, text text, created_at timestamptz
 )
+
+-- Added 2026-11-10 (built in Phase 4)
+card_designs (
+  id uuid pk, slug text unique, name text,
+  background_path text,      -- path in the public media bucket
+  layout jsonb,              -- text box position, font, colours
+  sort int, active bool default true, created_at timestamptz
+)
 ```
 
-**Security:** Row Level Security on every table. Public (anon) can read active `products` and `gallery_items` and insert into `events` only. Everything else goes through server routes using the service-role key.
+**Security:** Row Level Security on every table. Public (anon) can read active `products`, `gallery_items` and `card_designs` and insert into `events` only. Everything else goes through server routes using the service-role key.
+
+**Storage buckets:** `products`, `generated` and `uploads` are **private** (paid or personal files, served only through short-lived signed URLs). `media` is **public read** (added 2026-11-10) for images meant to be seen: product previews, gallery images and card backgrounds. Only the service role can write to it; PNG, JPEG and WebP only, 5 MB max.
+
+## 6a. Managing content (decision 2026-11-10)
+
+Content must never require a code change.
+
+- **Now (until Phase 6):** use the Supabase dashboard.
+  - *New product:* upload the file to the `products` bucket and the preview image to `media`, then add a `products` row (price in pence; `file_path` = the products-bucket path; `preview_image` = the media public URL). It appears in the shop within about a minute.
+  - *New gallery item:* upload the image to `media` (or use the affiliate programme's image URL) and add a `gallery_items` row.
+  - *New card design:* upload the background to `media` and add a `card_designs` row.
+  - To hide anything, set `active = false` rather than deleting (past orders reference products).
+- **Phase 6:** admin forms in `/admin` do the same with uploads handled automatically (F6).
 
 ## 7. Key routes
 
@@ -227,7 +249,7 @@ You add every key yourself in `.env.local` and the Vercel dashboard.
 ## 9. Risks and open questions
 
 **Risks**
-- **Timeline is tight.** The phased plan below totals roughly 18–22 hours — two long days. If you fall behind, cut in this order: photo upload on cards → Resend emails → scheduled summary → lyrics backing track → reduce card designs to 2.
+- **Timeline is tight.** The phased plan below totals roughly 18–22 hours — two long days (≈ 20–25 h with the Phase 6 content forms added 2026-11-10). If you fall behind, cut in this order: photo upload on cards → Resend emails → scheduled summary → lyrics backing track → reduce card designs to 2 → admin content forms (fall back to the Supabase dashboard, §6a).
 - **Pay-before-generate friction.** Customers can't see AI quality before paying. Mitigate with sample cards on the page, the 3-regeneration allowance and editable text.
 - **Webhook delay.** The success redirect can arrive before the webhook. The studio/success pages poll the order status for up to ~20 seconds.
 - **AI misuse.** Offensive names or messages. Mitigate with input limits, prompt guardrails, and text editing only after AI output.
@@ -280,6 +302,7 @@ Each phase ends with a testable checkpoint. "You provide" lists what's needed **
 **Phase 4 — AI card generator (3–4 h)**
 - Design picker, form, pay-first checkout, card studio, Claude message generation, edit, render PNG/PDF, download.
 - ✅ Done: pay → generate → regenerate (blocked after 3) → edit → download PNG and PDF.
+- Includes the `card_designs` table (+ RLS) and seeding the launch designs into it (decision 2026-11-10).
 - 🧾 You provide: 3–4 card background images, card price.
 
 **Phase 5 — AI lyrics generator (1–2 h)**
@@ -287,9 +310,10 @@ Each phase ends with a testable checkpoint. "You provide" lists what's needed **
 - ✅ Done: pay → generate → regenerate → download.
 - 🧾 You provide: lyrics price; backing track MP3 (optional).
 
-**Phase 6 — Admin dashboard + AI summary (2–3 h)**
+**Phase 6 — Admin dashboard + AI summary (2–3 h, plus ~2–3 h for content forms)**
 - Magic-link auth + allowlist, KPI cards, charts, top lists, summary generation.
-- ✅ Done: non-admin emails are refused; numbers match test orders; summary generates.
+- Content forms for products, gallery items and card designs with file uploads (added 2026-11-10, see F6).
+- ✅ Done: non-admin emails are refused; numbers match test orders; summary generates; a product, gallery item and card design can be added from `/admin` and appear on the site.
 - 🧾 You provide: admin email address.
 
 **Phase 7 — Hardening and launch (2 h)**
