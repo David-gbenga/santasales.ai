@@ -1,4 +1,10 @@
 import { z } from "zod";
+import {
+  GREETING_TEXT_MAX,
+  GREETING_VOICE_IDS,
+  SONG_STYLE_KEYS,
+  VOCAL_KEYS,
+} from "@/lib/audio-options";
 
 /** Trims, collapses whitespace and strips control characters from free text. */
 const cleanText = (max: number) =>
@@ -110,6 +116,36 @@ export const lyricsTextSchema = z.object({
 });
 export type LyricsText = z.infer<typeof lyricsTextSchema>;
 
+// ---------------------------------------------------------------------------
+// ElevenLabs add-ons
+
+export const songAudioInputSchema = z.object({
+  style: z.enum(SONG_STYLE_KEYS),
+  vocal: z.enum(VOCAL_KEYS),
+});
+export type SongAudioInput = z.infer<typeof songAudioInputSchema>;
+
+export const voiceGreetingInputSchema = z.object({
+  voiceId: z.enum(GREETING_VOICE_IDS),
+  text: requiredText(GREETING_TEXT_MAX, "Your greeting"),
+});
+export type VoiceGreetingInput = z.infer<typeof voiceGreetingInputSchema>;
+
+/** Body of POST /api/generate/audio. A retake of a greeting may change its words or voice. */
+export const generateAudioRequestSchema = z.object({
+  generationId: z.uuid(),
+  action: z.enum(["generate", "retake"]),
+  greeting: voiceGreetingInputSchema.optional(),
+});
+
+/** Body of POST /api/share. orderId is the buyer's key, as for downloads. */
+export const shareRequestSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("create"), orderId: z.uuid(), note: cleanText(300).optional() }),
+  z.object({ action: z.literal("revoke"), orderId: z.uuid() }),
+]);
+
+export const giftTokenSchema = z.string().regex(/^[A-Za-z0-9_-]{22,64}$/);
+
 export const designSlugSchema = z
   .string()
   .max(64)
@@ -123,6 +159,16 @@ export const checkoutRequestSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("product"), productId: z.uuid() }),
   z.object({ kind: z.literal("card"), designSlug: designSlugSchema, input: cardInputSchema }),
   z.object({ kind: z.literal("lyrics"), input: lyricsInputSchema }),
+  z.object({
+    kind: z.literal("song_audio"),
+    parentGenerationId: z.uuid(),
+    input: songAudioInputSchema,
+  }),
+  z.object({
+    kind: z.literal("voice_greeting"),
+    parentGenerationId: z.uuid(),
+    input: voiceGreetingInputSchema,
+  }),
 ]);
 export type CheckoutRequest = z.infer<typeof checkoutRequestSchema>;
 
@@ -131,6 +177,8 @@ export const checkoutMetadataSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("product"), product_id: z.uuid() }),
   z.object({ kind: z.literal("card"), generation_id: z.uuid() }),
   z.object({ kind: z.literal("lyrics"), generation_id: z.uuid() }),
+  z.object({ kind: z.literal("song_audio"), generation_id: z.uuid() }),
+  z.object({ kind: z.literal("voice_greeting"), generation_id: z.uuid() }),
 ]);
 export type CheckoutMetadata = z.infer<typeof checkoutMetadataSchema>;
 

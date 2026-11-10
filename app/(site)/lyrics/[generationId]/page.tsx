@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { GiftExtras } from "@/components/gift/gift-extras";
 import { LyricsStudio } from "@/components/ui/lyrics-studio";
 import { WaitForPayment } from "@/components/ui/wait-for-payment";
 import { getLyricsGeneration, rewritesLeft } from "@/lib/generations";
@@ -51,7 +52,7 @@ async function Studio({ params }: Pick<PageProps<"/lyrics/[generationId]">, "par
     );
   }
 
-  return (
+  const studio = (
     <LyricsStudio
       generationId={generation.id}
       orderId={generation.order.id}
@@ -61,5 +62,22 @@ async function Studio({ params }: Pick<PageProps<"/lyrics/[generationId]">, "par
       initialRewritesLeft={rewritesLeft(generation.regenCount)}
       initialLocked={generation.locked}
     />
+  );
+
+  // Once the song is saved: send it, have it sung, add a voice greeting.
+  return generation.locked ? (
+    <>
+      {studio}
+      <GiftExtras
+        generationId={generation.id}
+        orderId={generation.order.id}
+        kind="lyrics"
+        recipientName={generation.input.recipientName}
+        senderName={generation.input.senderName}
+        defaultGreeting={`Merry Christmas, ${generation.input.recipientName}! I wrote you a song. Lots of love, ${generation.input.senderName}.`}
+      />
+    </>
+  ) : (
+    studio
   );
 }

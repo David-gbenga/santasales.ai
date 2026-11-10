@@ -80,6 +80,7 @@ STRIPE_WEBHOOK_SECRET
 ANTHROPIC_API_KEY
 ANTHROPIC_MODEL              # e.g. claude-sonnet-5-5 (cards, lyrics, admin summary)
 CONCIERGE_MODEL              # Gift Concierge chat, e.g. claude-haiku-5-5; falls back to ANTHROPIC_MODEL
+ELEVENLABS_API_KEY           # sung songs + voice greetings (Text to Speech and Music permissions)
 ADMIN_EMAILS                 # comma-separated allowlist
 CRON_SECRET
 RESEND_API_KEY               # optional (P1)

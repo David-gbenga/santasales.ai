@@ -6,18 +6,23 @@ import { orderIdSchema } from "@/lib/validation";
 
 type OrderWithFiles = {
   status: string;
-  kind: "product" | "card" | "lyrics";
+  kind: "product" | "card" | "lyrics" | "song_audio" | "voice_greeting";
   paid_at: string | null;
   product: { slug: string; file_path: string } | null;
-  generation: { locked: boolean; png_path: string | null; pdf_path: string | null } | null;
+  generation: {
+    locked: boolean;
+    png_path: string | null;
+    pdf_path: string | null;
+    output_text: string | null;
+  } | null;
 };
 
 /**
- * ?format picks the file: png|pdf for cards, pdf|txt for lyrics.
- * ?view=1 shows it inline instead of downloading.
+ * ?format picks the file: png|pdf for cards, pdf|txt for lyrics, mp3 for
+ * audio add-ons. ?view=1 shows it inline instead of downloading.
  */
 const querySchema = z.object({
-  format: z.enum(["png", "pdf", "txt"]).default("pdf"),
+  format: z.enum(["png", "pdf", "txt", "mp3"]).default("pdf"),
   view: z.enum(["1"]).optional(),
 });
 type Format = z.infer<typeof querySchema>["format"];
@@ -29,6 +34,21 @@ function errorResponse(message: string, status: number) {
 }
 
 function fileForOrder(order: OrderWithFiles, format: Format): FileRef | string {
+  if (order.kind === "song_audio" || order.kind === "voice_greeting") {
+    let path: string | null = null;
+    try {
+      path =
+        (JSON.parse(order.generation?.output_text ?? "null") as { audioPath?: string } | null)
+          ?.audioPath ?? null;
+    } catch {
+      path = null;
+    }
+    if (!path)
+      return "The recording isn't ready yet. Go back to your order page; it updates automatically.";
+    const name = order.kind === "song_audio" ? "christmas-song" : "voice-greeting";
+    return { bucket: "generated", path, filename: `${name}.mp3` };
+  }
+  if (format === "mp3") return "That file type isn't available for this order.";
   if (order.kind === "lyrics") {
     const pdfPath = order.generation?.pdf_path;
     if (!order.generation?.locked || !pdfPath) {
@@ -71,7 +91,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/downl
     const { data: order, error } = await db
       .from("orders")
       .select(
-        "status, kind, paid_at, product:products(slug, file_path), generation:generations(locked, png_path, pdf_path)",
+        "status, kind, paid_at, product:products(slug, file_path), generation:generations(locked, png_path, pdf_path, output_text)",
       )
       .eq("id", parsedId.data)
       .maybeSingle<OrderWithFiles>();

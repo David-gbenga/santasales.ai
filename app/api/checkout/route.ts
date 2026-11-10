@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
+import { getAddonsFor } from "@/lib/addons";
 import { CARD_PROMPT_VERSION } from "@/lib/ai/prompts/card";
 import { LYRICS_PROMPT_VERSION } from "@/lib/ai/prompts/lyrics";
 import { getCardDesign } from "@/lib/card-designs";
 import { siteUrl } from "@/lib/env";
 import { createPendingOrder } from "@/lib/orders";
-import { CARD_PRICE_PENCE, CURRENCY, LYRICS_PRICE_PENCE } from "@/lib/pricing";
+import {
+  CARD_PRICE_PENCE,
+  CURRENCY,
+  LYRICS_PRICE_PENCE,
+  SONG_AUDIO_PRICE_PENCE,
+  VOICE_GREETING_PRICE_PENCE,
+} from "@/lib/pricing";
 import { AUTOMATIC_TAX_ENABLED, DIGITAL_CONSENT_TEXT, getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkoutRequestSchema, type CheckoutRequest } from "@/lib/validation";
@@ -175,6 +182,97 @@ async function checkoutLyrics(
   return { url: session.url };
 }
 
+type ParentRow = {
+  id: string;
+  kind: string;
+  locked: boolean;
+  input: { recipientName?: string } | null;
+  orders: { status: string }[];
+};
+
+/**
+ * ElevenLabs add-ons attach to a finished, paid card or song. A sung version
+ * needs lyrics; a voice greeting works with either. One paid add-on of each
+ * kind per item.
+ */
+async function checkoutAddon(
+  request: Extract<CheckoutRequest, { kind: "song_audio" | "voice_greeting" }>,
+  origin: string,
+): Promise<CheckoutResult> {
+  const db = createAdminClient();
+  const { data: parent, error } = await db
+    .from("generations")
+    .select("id, kind, locked, input, orders(status)")
+    .eq("id", request.parentGenerationId)
+    .maybeSingle<ParentRow>();
+  if (error) throw new Error(error.message);
+
+  const allowedParents = request.kind === "song_audio" ? ["lyrics"] : ["card", "lyrics"];
+  if (!parent || !allowedParents.includes(parent.kind) || parent.orders[0]?.status !== "paid") {
+    return { error: "We couldn't find that order.", status: 404 };
+  }
+  if (!parent.locked) {
+    return {
+      error: `Finish your ${parent.kind === "card" ? "card" : "song"} first, then add this.`,
+      status: 409,
+    };
+  }
+
+  const existing = await getAddonsFor(parent.id);
+  if (existing[request.kind]?.order?.status === "paid") {
+    return { error: "You've already added this. Scroll down to play it.", status: 409 };
+  }
+
+  const { data: addon, error: insertError } = await db
+    .from("generations")
+    .insert({ kind: request.kind, parent_id: parent.id, input: request.input })
+    .select("id")
+    .single();
+  if (insertError) throw new Error(`Creating add-on failed: ${insertError.message}`);
+
+  const recipient = parent.input?.recipientName ?? "them";
+  const isSong = request.kind === "song_audio";
+  const price = isSong ? SONG_AUDIO_PRICE_PENCE : VOICE_GREETING_PRICE_PENCE;
+  const studio = `${origin}/${parent.kind === "card" ? "cards" : "lyrics"}/${parent.id}`;
+
+  const session = await getStripe().checkout.sessions.create({
+    ...baseSession(),
+    line_items: [
+      {
+        quantity: 1,
+        price_data: {
+          currency: CURRENCY,
+          unit_amount: price,
+          product_data: isSong
+            ? {
+                name: `Sung version of your song for ${recipient}`,
+                description:
+                  "Your lyrics recorded as a full sung song, with one retake. MP3 download.",
+              }
+            : {
+                name: `Voice greeting for ${recipient}`,
+                description:
+                  "Your words read aloud in the voice you chose, with re-recordings. MP3 download.",
+              },
+        },
+      },
+    ],
+    metadata: { kind: request.kind, generation_id: addon.id },
+    success_url: `${studio}?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: studio,
+  });
+  if (!session.url) throw new Error("Stripe returned no checkout URL");
+
+  await createPendingOrder({
+    kind: request.kind,
+    generationId: addon.id,
+    sessionId: session.id,
+    amountPence: price,
+    currency: CURRENCY,
+  });
+  return { url: session.url };
+}
+
 /** Creates a Stripe Checkout Session. Prices always come from the server, never the request. */
 export async function POST(request: Request) {
   const parsed = checkoutRequestSchema.safeParse(await request.json().catch(() => null));
@@ -195,7 +293,9 @@ export async function POST(request: Request) {
         ? await checkoutProduct(data.productId, origin)
         : data.kind === "card"
           ? await checkoutCard(data, origin)
-          : await checkoutLyrics(data, origin);
+          : data.kind === "lyrics"
+            ? await checkoutLyrics(data, origin)
+            : await checkoutAddon(data, origin);
     if ("error" in result) return errorResponse(result.error, result.status);
     return NextResponse.json({ url: result.url });
   } catch (err) {

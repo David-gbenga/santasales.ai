@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { GiftExtras } from "@/components/gift/gift-extras";
 import { CardStudio } from "@/components/ui/card-studio";
 import { WaitForPayment } from "@/components/ui/wait-for-payment";
 import { getCardDesign } from "@/lib/card-designs";
@@ -58,7 +59,7 @@ async function Studio({ params }: Pick<PageProps<"/cards/[generationId]">, "para
   const design = await getCardDesign(generation.designSlug, { includeInactive: true });
   if (!design) notFound();
 
-  return (
+  const studio = (
     <CardStudio
       generationId={generation.id}
       orderId={generation.order.id}
@@ -73,5 +74,22 @@ async function Studio({ params }: Pick<PageProps<"/cards/[generationId]">, "para
       initialRewritesLeft={rewritesLeft(generation.regenCount)}
       initialLocked={generation.locked}
     />
+  );
+
+  // Once the card is finished: send it, and optionally add a voice greeting.
+  return generation.locked ? (
+    <>
+      {studio}
+      <GiftExtras
+        generationId={generation.id}
+        orderId={generation.order.id}
+        kind="card"
+        recipientName={recipient}
+        senderName={generation.input.senderName}
+        defaultGreeting={`Merry Christmas, ${recipient}! I hope you love your card. Lots of love, ${generation.input.senderName}.`}
+      />
+    </>
+  ) : (
+    studio
   );
 }

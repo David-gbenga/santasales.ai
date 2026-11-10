@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 
 type LyricsWords = { title: string; body: string };
@@ -81,6 +82,7 @@ export function LyricsStudio(props: StudioProps) {
   const [busy, setBusy] = useState<Busy>(null);
   const [error, setError] = useState("");
   const started = useRef(false);
+  const router = useRouter();
   const ids = { title: useId(), body: useId() };
 
   const call = useCallback(
@@ -101,13 +103,15 @@ export function LyricsStudio(props: StudioProps) {
         setEditing(false);
         setRewrites(body.rewritesLeft ?? 0);
         setLocked(Boolean(body.locked));
+        // Finished: re-render the page so the sharing and add-on sections appear.
+        if (body.locked) router.refresh();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong. Try again.");
       } finally {
         setBusy(null);
       }
     },
-    [generationId],
+    [generationId, router],
   );
 
   useEffect(() => {

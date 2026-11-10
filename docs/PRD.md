@@ -138,6 +138,18 @@ A chat on the landing page that asks who the gift is for, their budget and style
 - Lazy-loaded (landing page stays ≥ 80 mobile Performance); keyboard and screen-reader usable, replies announced politely.
 - Bundles (one payment, one discount) remain P2: v1 recommends several items, each with its own checkout.
 
+### F9. Gift links and sharing — P1 (added 2026-11-10, built as Phase 5c)
+- After a card or song is finished, the buyer can make one private gift link per item (`/gift/<24-char token>`, unguessable, `noindex`) with an optional note (≤ 300 chars), and switch it off or back on.
+- The recipient's page shows the card image or lyrics plus any paid voice greeting and sung version, via signed URLs that last an hour.
+- Sending uses the buyer's own apps: WhatsApp (`wa.me` link), email (`mailto:`), copy link, and the phone's share sheet. Nothing is sent from our servers (server email via Resend needs a verified domain; later).
+
+### F10. ElevenLabs audio add-ons — P1 (added 2026-11-10, built as Phase 5c)
+- **Sung version** of finished lyrics (£3.99 placeholder): ElevenLabs Music `music_v2_5`, lyrics passed verbatim as a composition plan (one chunk per section), style (cosy acoustic / upbeat pop / big band swing / piano ballad) and singer (female/male). Two takes. MP3 download and on the gift page. Supersedes the "AI-sung songs" P2 item below.
+- **Voice greeting** for a finished card or song (£1.49 placeholder): ElevenLabs text-to-speech, 4 built-in British voices (no voice cloning), ≤ 400 characters, three takes (words and voice editable).
+- Add-ons are their own pay-first generations/orders linked by `generations.parent_id`; takes are claimed atomically and returned on failure. `ELEVENLABS_API_KEY` needs only Text to Speech and Music permissions.
+- **Licensing to confirm with ElevenLabs before selling:** their Music Terms limit Starter/Creator/Pro plans to "individual use"; Scale/Business/Enterprise cover businesses. Monthly music-minute limits apply per plan.
+- **Live AI phone calls: out of scope** (decision 2026-11-10) — recipient consent rules (AI voices count as "artificial voices"), abuse risk, Twilio setup. Revisit post-launch with legal advice and a recipient opt-in step.
+
 ### F7. Legal & trust pages — P0
 Terms (including AI-generated content terms placeholder), Privacy, Refunds (digital goods: customer consent to immediate supply / loss of the 14-day cancellation right under UK consumer law — checkbox or wording at checkout), Affiliate disclosure, Contact.
 
@@ -145,7 +157,9 @@ Terms (including AI-generated content terms placeholder), Privacy, Refunds (digi
 
 ## 5. Out of scope (later phases)
 
-- **P2 — AI-sung songs** using a third-party music-generation service (cost, licensing and integration time).
+- ~~**P2 — AI-sung songs**~~ — brought forward and built as F10 (ElevenLabs), 2026-11-10.
+- **Later — Live AI-voiced phone calls** to recipients (consent, abuse and telephony setup; see F10).
+- **Later — Server-sent emails** to recipients via Resend once a custom domain is verified.
 - **P2 — Autonomous AI agent** that makes decisions (pricing, promotions) on its own.
 - P2 — Customer accounts and order history.
 - P2 — Physical printing/posting of cards.
@@ -326,6 +340,11 @@ Each phase ends with a testable checkpoint. "You provide" lists what's needed **
 - Chat widget, tools (F8), teaser previews, checkout hand-off, limits, tests.
 - ✅ Done: a shopper can describe a recipient and budget, get product and card suggestions with a teaser, and land on Stripe Checkout for a card with the form fields pre-filled; limits stop runaway use; landing Lighthouse mobile ≥ 80.
 - 🧾 You provide: whether the concierge should use a cheaper model (e.g. Haiku 5.5) than the card writer.
+
+**Phase 5c — Gift links + ElevenLabs add-ons (≈ 1–1½ days, added 2026-11-10)**
+- Gift link page and share buttons (F9); sung version and voice greeting add-ons (F10).
+- ✅ Done: a finished card or song can be sent by link; a paid greeting and sung version record, download and play on the gift page; links can be switched off.
+- 🧾 You provide: ElevenLabs key (Text to Speech + Music permissions) and confirmation of your ElevenLabs plan's commercial terms.
 
 **Phase 6 — Admin dashboard + AI summary (2–3 h, plus ~2–3 h for content forms)**
 - Magic-link auth + allowlist, KPI cards, charts, top lists, summary generation.

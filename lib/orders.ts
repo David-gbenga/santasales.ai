@@ -13,13 +13,14 @@ export type OrderStatus = "pending" | "paid" | "refunded";
 export type OrderSummary = {
   id: string;
   status: OrderStatus;
-  kind: "product" | "card" | "lyrics";
+  kind: "product" | "card" | "lyrics" | "song_audio" | "voice_greeting";
   paid_at: string | null;
   product: { name: string; slug: string } | null;
 };
 
 type OrderTarget =
-  { kind: "product"; productId: string } | { kind: "card" | "lyrics"; generationId: string };
+  | { kind: "product"; productId: string }
+  | { kind: "card" | "lyrics" | "song_audio" | "voice_greeting"; generationId: string };
 
 /** Records the order as pending right after the Checkout Session is created. */
 export async function createPendingOrder(
