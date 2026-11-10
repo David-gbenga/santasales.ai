@@ -5,8 +5,10 @@ import { GiftExtras } from "@/components/gift/gift-extras";
 import { CardStudio } from "@/components/ui/card-studio";
 import { WaitForPayment } from "@/components/ui/wait-for-payment";
 import { getCardDesign } from "@/lib/card-designs";
+import { formatPrice } from "@/lib/format";
 import { getCardGeneration, rewritesLeft } from "@/lib/generations";
 import { mediaUrl } from "@/lib/media";
+import { CARD_PRICE_PENCE, FREE_PREVIEW_REROLLS } from "@/lib/pricing";
 import { orderIdSchema } from "@/lib/validation";
 
 export const metadata: Metadata = {
@@ -14,30 +16,34 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-export default function CardStudioPage({ params }: PageProps<"/cards/[generationId]">) {
+export default function CardStudioPage({ params, searchParams }: PageProps<"/cards/[generationId]">) {
   return (
     <div className="bg-snow text-ink">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 md:py-16">
         <Suspense
           fallback={<h1 className="font-display text-4xl sm:text-5xl">Opening your card…</h1>}
         >
-          <Studio params={params} />
+          <Studio params={params} searchParams={searchParams} />
         </Suspense>
       </div>
     </div>
   );
 }
 
-async function Studio({ params }: Pick<PageProps<"/cards/[generationId]">, "params">) {
+async function Studio({
+  params,
+  searchParams,
+}: Pick<PageProps<"/cards/[generationId]">, "params" | "searchParams">) {
   const id = orderIdSchema.safeParse((await params).generationId);
   if (!id.success) notFound();
 
   const generation = await getCardGeneration(id.data);
-  if (!generation || !generation.order) notFound();
+  if (!generation) notFound();
+  const state = studioState(generation.order, (await searchParams).session_id);
 
   const recipient = generation.input.recipientName;
 
-  if (generation.order.status === "pending") {
+  if (state === "confirming") {
     return (
       <>
         <h1 className="font-display text-4xl leading-tight sm:text-5xl">
@@ -47,7 +53,7 @@ async function Studio({ params }: Pick<PageProps<"/cards/[generationId]">, "para
       </>
     );
   }
-  if (generation.order.status === "refunded") {
+  if (state === "refunded") {
     return (
       <>
         <h1 className="font-display text-4xl leading-tight sm:text-5xl">This order was refunded</h1>
@@ -59,10 +65,15 @@ async function Studio({ params }: Pick<PageProps<"/cards/[generationId]">, "para
   const design = await getCardDesign(generation.designSlug, { includeInactive: true });
   if (!design) notFound();
 
+  const paidOrderId = state === "paid" ? (generation.order?.id ?? null) : null;
+
   const studio = (
     <CardStudio
       generationId={generation.id}
-      orderId={generation.order.id}
+      orderId={paidOrderId}
+      paid={paidOrderId !== null}
+      priceLabel={formatPrice(CARD_PRICE_PENCE)}
+      initialFreeRerollsLeft={Math.max(0, FREE_PREVIEW_REROLLS - generation.freeRerolls)}
       recipientName={recipient}
       senderName={generation.input.senderName}
       design={{
@@ -77,12 +88,12 @@ async function Studio({ params }: Pick<PageProps<"/cards/[generationId]">, "para
   );
 
   // Once the card is finished: send it, and optionally add a voice greeting.
-  return generation.locked ? (
+  return generation.locked && paidOrderId ? (
     <>
       {studio}
       <GiftExtras
         generationId={generation.id}
-        orderId={generation.order.id}
+        orderId={paidOrderId}
         kind="card"
         recipientName={recipient}
         senderName={generation.input.senderName}
@@ -92,4 +103,20 @@ async function Studio({ params }: Pick<PageProps<"/cards/[generationId]">, "para
   ) : (
     studio
   );
+}
+
+/**
+ * What the studio shows. Payment state comes only from the order the Stripe
+ * webhook marks paid. A pending order with a session_id means the buyer has
+ * just come back from Checkout; without one it's an abandoned checkout, so the
+ * free preview carries on.
+ */
+function studioState(
+  order: { status: "pending" | "paid" | "refunded" } | null,
+  sessionId: string | string[] | undefined,
+): "preview" | "confirming" | "paid" | "refunded" {
+  if (order?.status === "paid") return "paid";
+  if (order?.status === "refunded") return "refunded";
+  if (order?.status === "pending" && typeof sessionId === "string") return "confirming";
+  return "preview";
 }

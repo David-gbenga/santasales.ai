@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getAddon, maxTakes, type Addon } from "@/lib/addons";
+import { getAddon, isAddonPaid, maxTakes, type Addon } from "@/lib/addons";
 import { ElevenLabsError, composeSong, speak } from "@/lib/elevenlabs";
 import {
   claimRewrite,
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
   try {
     let addon = await getAddon(body.generationId);
     if (!addon) return errorResponse("We couldn't find that recording.", 404);
-    if (addon.order?.status !== "paid") {
+    if (!(await isAddonPaid(addon))) {
       return errorResponse(
         "Your payment is still being confirmed. This will update in a few seconds.",
         409,

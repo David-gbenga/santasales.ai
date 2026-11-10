@@ -17,7 +17,7 @@ export function SiteHeader() {
           {site.name}
         </Link>
         <nav aria-label="Main">
-          <ul className="flex gap-1 text-[0.95rem] font-medium sm:gap-2">
+          <ul className="flex flex-wrap gap-x-1 text-[0.95rem] font-medium sm:gap-x-2">
             {nav.map((item) => (
               <li key={item.href}>
                 <Link

@@ -5,14 +5,18 @@ import { useState } from "react";
 import { track } from "@/lib/analytics";
 import type { ConciergeWidget } from "@/lib/concierge/types";
 
-/** Starts Stripe Checkout through the same endpoint the forms use. Prices are decided there. */
-function usePay(body: unknown, refId: string) {
+/**
+ * Starts Stripe Checkout (shop items) or a free preview (cards and songs)
+ * through the same endpoints the site's own buttons and forms use. Prices are
+ * decided on the server.
+ */
+function usePay(body: unknown, refId: string, endpoint: "/api/checkout" | "/api/preview") {
   const [state, setState] = useState<{ busy: boolean; error: string }>({ busy: false, error: "" });
   async function pay() {
     setState({ busy: true, error: "" });
-    track("checkout_start", { refId });
+    track(endpoint === "/api/checkout" ? "checkout_start" : "cta_click", { refId });
     try {
-      const res = await fetch("/api/checkout", {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -37,12 +41,22 @@ const box = "overflow-hidden rounded-xl border border-line-snow bg-white";
 const primary =
   "inline-flex min-h-11 items-center justify-center rounded-full bg-ink px-4 text-sm font-semibold text-snow hover:bg-night-raised disabled:cursor-wait disabled:opacity-70";
 
-function PayButton({ label, body, refId }: { label: string; body: unknown; refId: string }) {
-  const { busy, error, pay } = usePay(body, refId);
+function PayButton({
+  label,
+  body,
+  refId,
+  endpoint = "/api/checkout",
+}: {
+  label: string;
+  body: unknown;
+  refId: string;
+  endpoint?: "/api/checkout" | "/api/preview";
+}) {
+  const { busy, error, pay } = usePay(body, refId, endpoint);
   return (
     <div>
       <button type="button" onClick={pay} disabled={busy} className={primary}>
-        {busy ? "Opening checkout…" : label}
+        {busy ? (endpoint === "/api/checkout" ? "Opening checkout…" : "Starting your preview…") : label}
       </button>
       {error && (
         <p role="alert" className="mt-2 text-sm text-berry">
@@ -142,12 +156,13 @@ export function ConciergeWidgetView({ widget }: { widget: ConciergeWidget }) {
           </div>
           <div className="border-t border-line-snow p-3">
             <PayButton
-              label={`Pay ${widget.priceLabel} and write the full card`}
+              label="Write the full card (free preview)"
+              endpoint="/api/preview"
               body={{ kind: "card", designSlug: widget.designSlug, input: widget.input }}
               refId={`concierge:card:${widget.designSlug}`}
             />
             <p className="mt-2 text-xs text-ink-muted">
-              The full message is written after you pay. 3 rewrites included.
+              See the whole card before paying. Pay {widget.priceLabel} only if you love it.
             </p>
           </div>
         </div>
@@ -168,12 +183,13 @@ export function ConciergeWidgetView({ widget }: { widget: ConciergeWidget }) {
           </div>
           <div className="border-t border-line-snow p-3">
             <PayButton
-              label={`Pay ${widget.priceLabel} and write the full song`}
+              label="Write the full song (free preview)"
+              endpoint="/api/preview"
               body={{ kind: "lyrics", input: widget.input }}
               refId="concierge:song"
             />
             <p className="mt-2 text-xs text-ink-muted">
-              The full song is written after you pay. 3 rewrites included.
+              Read it and hear a sung sample before paying. {widget.priceLabel} for the full sung song.
             </p>
           </div>
         </div>

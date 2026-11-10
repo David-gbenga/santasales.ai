@@ -4,7 +4,7 @@ import { getAddonsFor, maxTakes, type Addon } from "@/lib/addons";
 import { siteUrl } from "@/lib/env";
 import { formatPrice } from "@/lib/format";
 import { getShareFor } from "@/lib/gifts";
-import { SONG_AUDIO_PRICE_PENCE, VOICE_GREETING_PRICE_PENCE } from "@/lib/pricing";
+import { VOICE_GREETING_PRICE_PENCE } from "@/lib/pricing";
 
 function toState(addon: Addon | undefined): AddonState {
   if (!addon || addon.order?.status === "refunded") return null;
@@ -18,9 +18,22 @@ function toState(addon: Addon | undefined): AddonState {
   };
 }
 
+/** The sung recording that comes with a song: paid through the song's own order. */
+function includedSongState(addon: Addon | undefined, songOrderId: string): AddonState {
+  if (!addon) return null;
+  return {
+    id: addon.id,
+    orderId: songOrderId, // downloads go through the song order (?format=mp3)
+    status: "paid",
+    audioReady: Boolean(addon.audioPath),
+    takesLeft: Math.max(0, maxTakes(addon.kind) - addon.takesUsed),
+    input: addon.input,
+  };
+}
+
 /**
- * Shown under a finished card or song: send it as a gift link, and add the
- * ElevenLabs extras (a sung version for songs, a voice greeting for both).
+ * Shown under a finished card or song: send it as a gift link, play the
+ * song's sung recording, and add an optional voice greeting.
  */
 export async function GiftExtras({
   generationId,
@@ -37,13 +50,15 @@ export async function GiftExtras({
   senderName: string;
   defaultGreeting: string;
 }) {
-  const [addons, share] = await Promise.all([
-    getAddonsFor(generationId),
-    getShareFor(generationId),
-  ]);
+  const [addons, share] = await Promise.all([getAddonsFor(generationId), getShareFor(generationId)]);
 
   return (
     <div className="mt-12 grid gap-6 lg:grid-cols-2">
+      {kind === "lyrics" && (
+        <div className="lg:col-span-2">
+          <SongAddon addon={includedSongState(addons.song_audio, orderId)} />
+        </div>
+      )}
       <div className="lg:col-span-2">
         <ShareGift
           orderId={orderId}
@@ -54,13 +69,6 @@ export async function GiftExtras({
           initialActive={share?.active ?? false}
         />
       </div>
-      {kind === "lyrics" && (
-        <SongAddon
-          parentId={generationId}
-          priceLabel={formatPrice(SONG_AUDIO_PRICE_PENCE)}
-          addon={toState(addons.song_audio)}
-        />
-      )}
       <VoiceAddon
         parentId={generationId}
         priceLabel={formatPrice(VOICE_GREETING_PRICE_PENCE)}

@@ -19,7 +19,7 @@ const figtree = Figtree({
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
-  title: { default: `${site.name} | ${site.tagline}`, template: `%s | ${site.name}` },
+  title: { default: `${site.name} | Personal Christmas cards and sung songs`, template: `%s | ${site.name}` },
   description: site.description,
   openGraph: { title: site.name, description: site.description, type: "website" },
 };

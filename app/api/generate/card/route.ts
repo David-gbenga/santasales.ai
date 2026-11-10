@@ -4,12 +4,17 @@ import { getCardDesign } from "@/lib/card-designs";
 import { cardPdfFromPng, renderCardPng } from "@/lib/card-render";
 import { createGenerationRoute } from "@/lib/generation-route";
 import { getCardGeneration, uploadGenerated, type CardGeneration } from "@/lib/generations";
-import { generateCardRequestSchema, type CardInput, type CardText } from "@/lib/validation";
+import {
+  generateCardRequestSchema,
+  type CardInput,
+  type CardText,
+  type GenerateCardRequest,
+} from "@/lib/validation";
 
 // Claude plus rendering can take a while; give the function room on Vercel.
 export const maxDuration = 60;
 
-export const POST = createGenerationRoute<CardInput, CardText, CardGeneration>({
+export const POST = createGenerationRoute<CardInput, CardText, CardGeneration, GenerateCardRequest>({
   label: "card",
   noun: "card",
   finishPhrase: "create your card",

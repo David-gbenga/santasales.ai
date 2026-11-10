@@ -10,6 +10,7 @@ type OrderWithFiles = {
   paid_at: string | null;
   product: { slug: string; file_path: string } | null;
   generation: {
+    id: string;
     locked: boolean;
     png_path: string | null;
     pdf_path: string | null;
@@ -33,7 +34,28 @@ function errorResponse(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
 }
 
-function fileForOrder(order: OrderWithFiles, format: Format): FileRef | string {
+/** The sung recording that comes with a song, if it has been recorded. */
+async function songAudioFor(generationId: string): Promise<string | null> {
+  const { data } = await createAdminClient()
+    .from("generations")
+    .select("output_text")
+    .eq("parent_id", generationId)
+    .eq("kind", "song_audio")
+    .limit(1)
+    .maybeSingle<{ output_text: string | null }>();
+  try {
+    return (JSON.parse(data?.output_text ?? "null") as { audioPath?: string } | null)?.audioPath ?? null;
+  } catch {
+    return null;
+  }
+}
+
+async function fileForOrder(order: OrderWithFiles, format: Format): Promise<FileRef | string> {
+  if (order.kind === "lyrics" && format === "mp3") {
+    const path = order.generation ? await songAudioFor(order.generation.id) : null;
+    if (!path) return "Your sung song isn't recorded yet. Go back to the song page; it records after you save.";
+    return { bucket: "generated", path, filename: "christmas-song.mp3" };
+  }
   if (order.kind === "song_audio" || order.kind === "voice_greeting") {
     let path: string | null = null;
     try {
@@ -91,7 +113,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/downl
     const { data: order, error } = await db
       .from("orders")
       .select(
-        "status, kind, paid_at, product:products(slug, file_path), generation:generations(locked, png_path, pdf_path, output_text)",
+        "status, kind, paid_at, product:products(slug, file_path), generation:generations(id, locked, png_path, pdf_path, output_text)",
       )
       .eq("id", parsedId.data)
       .maybeSingle<OrderWithFiles>();
@@ -113,7 +135,7 @@ export async function GET(request: Request, { params }: RouteContext<"/api/downl
       );
     }
 
-    const file = fileForOrder(order, query.data.format);
+    const file = await fileForOrder(order, query.data.format);
     if (typeof file === "string") return errorResponse(file, 404);
 
     const { data: signed, error: signError } = await db.storage

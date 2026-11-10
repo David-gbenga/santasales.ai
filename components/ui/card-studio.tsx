@@ -3,11 +3,16 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { CardPreview, type PreviewDesign } from "@/components/ui/card-preview";
+import { PreviewBar, PreviewWatermark } from "@/components/ui/preview-bar";
 import type { CardWords } from "@/lib/card-fit";
 
 type StudioProps = {
   generationId: string;
-  orderId: string;
+  /** Null until paid (free preview). */
+  orderId: string | null;
+  paid: boolean;
+  priceLabel: string;
+  initialFreeRerollsLeft: number;
   recipientName: string;
   senderName: string;
   design: PreviewDesign & { name: string };
@@ -17,7 +22,7 @@ type StudioProps = {
 };
 
 type Busy = null | "generate" | "regenerate" | "finalize";
-type ApiReply = { text: CardWords; rewritesLeft: number; locked: boolean };
+type ApiReply = { text: CardWords; rewritesLeft: number; freeRerollsLeft: number; locked: boolean };
 
 const LIMITS = { greeting: 60, message: 700, signOff: 60 } as const;
 
@@ -35,6 +40,8 @@ export function CardStudio(props: StudioProps) {
   const [saved, setSaved] = useState<CardWords | null>(props.initialText);
   const [draft, setDraft] = useState<CardWords | null>(props.initialText);
   const [rewrites, setRewrites] = useState(props.initialRewritesLeft);
+  const [freeLeft, setFreeLeft] = useState(props.initialFreeRerollsLeft);
+  const { paid } = props;
   const [locked, setLocked] = useState(props.initialLocked);
   const [busy, setBusy] = useState<Busy>(null);
   const [error, setError] = useState("");
@@ -58,6 +65,7 @@ export function CardStudio(props: StudioProps) {
         setSaved(body.text);
         setDraft(body.text);
         setRewrites(body.rewritesLeft ?? 0);
+        setFreeLeft(body.freeRerollsLeft ?? 0);
         setLocked(Boolean(body.locked));
         // Finished: re-render the page so the sharing and add-on sections appear.
         if (body.locked) router.refresh();
@@ -70,7 +78,7 @@ export function CardStudio(props: StudioProps) {
     [generationId, router],
   );
 
-  // Write the first version as soon as the paid studio opens.
+  // Write the first version (the free preview) as soon as the studio opens.
   useEffect(() => {
     if (saved || started.current) return;
     started.current = true;
@@ -103,12 +111,15 @@ export function CardStudio(props: StudioProps) {
             className="w-full rounded-lg shadow-[0_12px_40px_rgb(19_35_63/0.25)]"
           />
         ) : (
-          <CardPreview
-            design={design}
-            text={draft}
-            senderName={senderName}
-            placeholder={busy === "generate"}
-          />
+          <div className="relative" style={{ containerType: "inline-size" }} onContextMenu={paid ? undefined : (e) => e.preventDefault()}>
+            <CardPreview
+              design={design}
+              text={draft}
+              senderName={senderName}
+              placeholder={busy === "generate"}
+            />
+            {!paid && <PreviewWatermark />}
+          </div>
         )}
         <p className="mt-3 text-sm text-ink-muted">{design.name} · 5×7 in · PNG and PDF</p>
       </div>
@@ -124,7 +135,9 @@ export function CardStudio(props: StudioProps) {
             : locked
               ? "Download it below and print at home or send it digitally."
               : saved
-                ? "Read it through. Rewrite it, or change any words you like."
+                ? paid
+                  ? "Read it through. Rewrite it, or change any words you like."
+                  : "Here’s your card. Like it? Unlock it below."
                 : ""}
         </p>
 
@@ -146,7 +159,17 @@ export function CardStudio(props: StudioProps) {
           </p>
         )}
 
-        {locked ? (
+        {!paid && saved ? (
+          <PreviewBar
+            generationId={generationId}
+            noun="card"
+            priceLabel={props.priceLabel}
+            unlocks="3 more rewrites, editing, and the print-ready PNG and PDF without the watermark"
+            freeRerollsLeft={freeLeft}
+            busy={busy !== null}
+            onReroll={() => call("regenerate")}
+          />
+        ) : !paid ? null : locked ? (
           <div className="mt-8 flex flex-wrap gap-3">
             <a
               href={`${downloadBase}?format=pdf`}

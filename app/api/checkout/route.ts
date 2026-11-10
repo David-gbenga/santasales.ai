@@ -1,17 +1,14 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getAddonsFor } from "@/lib/addons";
-import { CARD_PROMPT_VERSION } from "@/lib/ai/prompts/card";
-import { LYRICS_PROMPT_VERSION } from "@/lib/ai/prompts/lyrics";
-import { getCardDesign } from "@/lib/card-designs";
 import { siteUrl } from "@/lib/env";
 import { createPendingOrder } from "@/lib/orders";
 import {
   CARD_PRICE_PENCE,
   CURRENCY,
-  LYRICS_PRICE_PENCE,
-  SONG_AUDIO_PRICE_PENCE,
   VOICE_GREETING_PRICE_PENCE,
+  songPricePence,
+  type SongLength,
 } from "@/lib/pricing";
 import { AUTOMATIC_TAX_ENABLED, DIGITAL_CONSENT_TEXT, getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -77,31 +74,95 @@ async function checkoutProduct(productId: string, origin: string): Promise<Check
   return { url: session.url };
 }
 
-/**
- * Pay first: the form inputs are saved as a pending generation, and the
- * generation id travels in the Checkout metadata. Nothing is generated
- * until the webhook marks the order paid.
- */
-async function checkoutCard(
-  request: Extract<CheckoutRequest, { kind: "card" }>,
-  origin: string,
-): Promise<CheckoutResult> {
-  const design = await getCardDesign(request.designSlug);
-  if (!design) {
-    return { error: "That card design isn't available any more. Pick another one.", status: 404 };
-  }
+const SONG_LENGTH_NOTE: Record<SongLength, string> = {
+  short: "about 40 seconds",
+  standard: "about 1 to 1½ minutes",
+  long: "about 2 minutes",
+};
 
+/**
+ * Checkout for a song: one price covers the lyrics and the sung recording
+ * (decision 2026-11-10), stepped by length.
+ */
+async function songSession(
+  generationId: string,
+  input: { recipientName: string; length: SongLength },
+  origin: string,
+  cancelPath: string,
+): Promise<CheckoutResult> {
+  const price = songPricePence(input.length);
+  const session = await getStripe().checkout.sessions.create({
+    ...baseSession(),
+    line_items: [
+      {
+        quantity: 1,
+        price_data: {
+          currency: CURRENCY,
+          unit_amount: price,
+          product_data: {
+            name: `Personal Christmas song for ${input.recipientName}`,
+            description: `Original lyrics, recorded as a full sung song (${SONG_LENGTH_NOTE[input.length]}). 3 rewrites included. MP3, PDF and text downloads.`,
+          },
+        },
+      },
+    ],
+    metadata: { kind: "lyrics", generation_id: generationId },
+    success_url: `${origin}/lyrics/${generationId}?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${origin}${cancelPath}`,
+  });
+  if (!session.url) throw new Error("Stripe returned no checkout URL");
+
+  await createPendingOrder({
+    kind: "lyrics",
+    generationId,
+    sessionId: session.id,
+    amountPence: price,
+    currency: CURRENCY,
+  });
+  return { url: session.url };
+}
+
+type PreviewRow = {
+  id: string;
+  kind: string;
+  locked: boolean;
+  output_text: string | null;
+  input: { recipientName?: string; length?: SongLength } | null;
+  orders: { status: string }[];
+};
+
+/**
+ * Pay for a card or song the buyer has already previewed for free. An
+ * abandoned earlier checkout for the same item is replaced, not duplicated.
+ */
+async function checkoutPreview(generationId: string, origin: string): Promise<CheckoutResult> {
   const db = createAdminClient();
-  const { data: generation, error } = await db
+  const { data: g, error } = await db
     .from("generations")
-    .insert({
-      kind: "card",
-      design_id: design.slug,
-      input: { ...request.input, promptVersion: CARD_PROMPT_VERSION },
-    })
-    .select("id")
-    .single();
-  if (error) throw new Error(`Creating generation failed: ${error.message}`);
+    .select("id, kind, locked, output_text, input, orders(status)")
+    .eq("id", generationId)
+    .maybeSingle<PreviewRow>();
+  if (error) throw new Error(error.message);
+  if (!g || (g.kind !== "card" && g.kind !== "lyrics")) {
+    return { error: "We couldn't find that preview. Start a new one.", status: 404 };
+  }
+  if (g.orders.some((o) => o.status === "paid")) {
+    return { error: "You've already paid for this. Refresh the page.", status: 409 };
+  }
+  if (!g.output_text) return { error: "Your preview is still being written.", status: 409 };
+
+  const { error: deleteError } = await db
+    .from("orders")
+    .delete()
+    .eq("generation_id", g.id)
+    .eq("status", "pending");
+  if (deleteError) throw new Error(`Replacing old checkout failed: ${deleteError.message}`);
+
+  const recipientName = g.input?.recipientName ?? "them";
+  const studioPath = `/${g.kind === "card" ? "cards" : "lyrics"}/${g.id}`;
+  if (g.kind === "lyrics") {
+    return songSession(g.id, { recipientName, length: g.input?.length ?? "standard" }, origin, studioPath);
+  }
 
   const session = await getStripe().checkout.sessions.create({
     ...baseSession(),
@@ -112,71 +173,22 @@ async function checkoutCard(
           currency: CURRENCY,
           unit_amount: CARD_PRICE_PENCE,
           product_data: {
-            name: `Personal Christmas card for ${request.input.recipientName}`,
-            description: `${design.name} design. Message written for them, with 3 rewrites included. PNG and PDF download.`,
+            name: `Personal Christmas card for ${recipientName}`,
+            description: "The card you previewed, with 3 more rewrites, editing, and print-ready PNG and PDF downloads.",
           },
         },
       },
     ],
-    metadata: { kind: "card", generation_id: generation.id },
-    success_url: `${origin}/cards/${generation.id}?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/cards`,
+    metadata: { kind: "card", generation_id: g.id },
+    success_url: `${origin}${studioPath}?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${origin}${studioPath}`,
   });
   if (!session.url) throw new Error("Stripe returned no checkout URL");
-
   await createPendingOrder({
     kind: "card",
-    generationId: generation.id,
+    generationId: g.id,
     sessionId: session.id,
     amountPence: CARD_PRICE_PENCE,
-    currency: CURRENCY,
-  });
-  return { url: session.url };
-}
-
-/** Pay first, like cards: inputs saved as a pending lyrics generation. */
-async function checkoutLyrics(
-  request: Extract<CheckoutRequest, { kind: "lyrics" }>,
-  origin: string,
-): Promise<CheckoutResult> {
-  const { data: generation, error } = await createAdminClient()
-    .from("generations")
-    .insert({
-      kind: "lyrics",
-      design_id: null,
-      input: { ...request.input, promptVersion: LYRICS_PROMPT_VERSION },
-    })
-    .select("id")
-    .single();
-  if (error) throw new Error(`Creating generation failed: ${error.message}`);
-
-  const session = await getStripe().checkout.sessions.create({
-    ...baseSession(),
-    line_items: [
-      {
-        quantity: 1,
-        price_data: {
-          currency: CURRENCY,
-          unit_amount: LYRICS_PRICE_PENCE,
-          product_data: {
-            name: `Personal Christmas song lyrics for ${request.input.recipientName}`,
-            description:
-              "Original lyrics written for them, with 3 rewrites included. PDF and TXT download.",
-          },
-        },
-      },
-    ],
-    metadata: { kind: "lyrics", generation_id: generation.id },
-    success_url: `${origin}/lyrics/${generation.id}?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${origin}/lyrics`,
-  });
-  if (!session.url) throw new Error("Stripe returned no checkout URL");
-
-  await createPendingOrder({
-    kind: "lyrics",
-    generationId: generation.id,
-    sessionId: session.id,
-    amountPence: LYRICS_PRICE_PENCE,
     currency: CURRENCY,
   });
   return { url: session.url };
@@ -218,6 +230,10 @@ async function checkoutAddon(
     };
   }
 
+  if (request.kind === "song_audio") {
+    return { error: "Every song now comes sung. Save your song to record it.", status: 409 };
+  }
+
   const existing = await getAddonsFor(parent.id);
   if (existing[request.kind]?.order?.status === "paid") {
     return { error: "You've already added this. Scroll down to play it.", status: 409 };
@@ -231,8 +247,7 @@ async function checkoutAddon(
   if (insertError) throw new Error(`Creating add-on failed: ${insertError.message}`);
 
   const recipient = parent.input?.recipientName ?? "them";
-  const isSong = request.kind === "song_audio";
-  const price = isSong ? SONG_AUDIO_PRICE_PENCE : VOICE_GREETING_PRICE_PENCE;
+  const price = VOICE_GREETING_PRICE_PENCE;
   const studio = `${origin}/${parent.kind === "card" ? "cards" : "lyrics"}/${parent.id}`;
 
   const session = await getStripe().checkout.sessions.create({
@@ -243,17 +258,11 @@ async function checkoutAddon(
         price_data: {
           currency: CURRENCY,
           unit_amount: price,
-          product_data: isSong
-            ? {
-                name: `Sung version of your song for ${recipient}`,
-                description:
-                  "Your lyrics recorded as a full sung song, with one retake. MP3 download.",
-              }
-            : {
-                name: `Voice greeting for ${recipient}`,
-                description:
-                  "Your words read aloud in the voice you chose, with re-recordings. MP3 download.",
-              },
+          product_data: {
+            name: `Voice greeting for ${recipient}`,
+            description:
+              "Your words read aloud in the voice you chose, with re-recordings. MP3 download.",
+          },
         },
       },
     ],
@@ -291,11 +300,9 @@ export async function POST(request: Request) {
     const result =
       data.kind === "product"
         ? await checkoutProduct(data.productId, origin)
-        : data.kind === "card"
-          ? await checkoutCard(data, origin)
-          : data.kind === "lyrics"
-            ? await checkoutLyrics(data, origin)
-            : await checkoutAddon(data, origin);
+        : data.kind === "preview"
+              ? await checkoutPreview(data.generationId, origin)
+              : await checkoutAddon(data, origin);
     if ("error" in result) return errorResponse(result.error, result.status);
     return NextResponse.json({ url: result.url });
   } catch (err) {

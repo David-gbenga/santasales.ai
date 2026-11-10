@@ -7,7 +7,8 @@ import { formatPrice } from "@/lib/format";
 import { getActiveGalleryItems, storeHost } from "@/lib/gallery";
 import { LYRIC_LENGTH_LABELS, LYRIC_STYLE_LABELS } from "@/lib/lyrics-options";
 import { mediaUrl } from "@/lib/media";
-import { CARD_PRICE_PENCE, LYRICS_PRICE_PENCE } from "@/lib/pricing";
+import { SONG_STYLES, SONG_STYLE_KEYS, VOCAL_KEYS } from "@/lib/audio-options";
+import { CARD_PRICE_PENCE, SONG_PRICE_BY_LENGTH, songPricePence } from "@/lib/pricing";
 import { getActiveProducts } from "@/lib/products";
 import {
   CARD_TONES,
@@ -114,7 +115,7 @@ export function createConciergeTools(widgets: ConciergeWidget[], shown: string[]
         })),
         ourPersonalGifts: {
           card: `Personal Christmas card, ${formatPrice(CARD_PRICE_PENCE)}`,
-          song: `Personal Christmas song lyrics, ${formatPrice(LYRICS_PRICE_PENCE)}`,
+          song: `Personal Christmas song, written and sung: short ${formatPrice(SONG_PRICE_BY_LENGTH.short)}, standard ${formatPrice(SONG_PRICE_BY_LENGTH.standard)}, long ${formatPrice(SONG_PRICE_BY_LENGTH.long)}`,
         },
       });
     },
@@ -177,7 +178,7 @@ export function createConciergeTools(widgets: ConciergeWidget[], shown: string[]
   const offerCard = betaZodTool({
     name: "offer_card",
     description:
-      "Show a personal Christmas card offer with a one-line teaser and a Pay button. The full message is written after payment. Needs the recipient's and buyer's names.",
+      "Show a personal Christmas card offer with a one-line teaser and a free-preview button. Needs the recipient's and buyer's names.",
     inputSchema: z.object({
       designSlug: z.string().max(64).describe("A slug from list_card_designs"),
       tone: z.enum(CARD_TONES),
@@ -205,17 +206,19 @@ export function createConciergeTools(widgets: ConciergeWidget[], shown: string[]
         input: { ...input.data, relationship: input.data.relationship ?? "" },
       });
       shown.push(`card offer for ${input.data.recipientName} (${design.name})`);
-      return `Card offer shown with a Pay ${formatPrice(CARD_PRICE_PENCE)} button.`;
+      return `Card offer shown with a free-preview button; the card costs ${formatPrice(CARD_PRICE_PENCE)} if they buy it.`;
     },
   });
 
   const offerSong = betaZodTool({
     name: "offer_song",
     description:
-      "Show a personal Christmas song lyrics offer with a one-line teaser and a Pay button. The full song is written after payment. Needs the recipient's and buyer's names.",
+      "Show a personal Christmas song offer (original lyrics, recorded as a sung song) with a one-line teaser and a free-preview button. Needs the recipient's and buyer's names.",
     inputSchema: z.object({
       style: z.enum(LYRIC_STYLES),
       length: z.enum(LYRIC_LENGTHS),
+      musicStyle: z.enum(SONG_STYLE_KEYS).optional(),
+      vocal: z.enum(VOCAL_KEYS).optional(),
       ...personFields,
     }),
     async run({ teaser, ...rest }) {
@@ -228,13 +231,13 @@ export function createConciergeTools(widgets: ConciergeWidget[], shown: string[]
       widgets.push({
         type: "song_offer",
         teaser: teaser.trim(),
-        priceLabel: formatPrice(LYRICS_PRICE_PENCE),
-        summary: `${LYRIC_STYLE_LABELS[input.data.style].label} · ${LYRIC_LENGTH_LABELS[input.data.length].hint}`,
+        priceLabel: formatPrice(songPricePence(input.data.length)),
+        summary: `${SONG_STYLES[input.data.musicStyle].label} · ${LYRIC_STYLE_LABELS[input.data.style].label} · ${LYRIC_LENGTH_LABELS[input.data.length].hint}`,
         recipientName: input.data.recipientName,
         input: { ...input.data, relationship: input.data.relationship ?? "" },
       });
       shown.push(`song offer for ${input.data.recipientName}`);
-      return `Song offer shown with a Pay ${formatPrice(LYRICS_PRICE_PENCE)} button.`;
+      return `Song offer shown with a free-preview button; the song costs ${formatPrice(songPricePence(input.data.length))} if they buy it.`;
     },
   });
 

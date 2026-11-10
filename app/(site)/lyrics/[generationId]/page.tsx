@@ -4,7 +4,9 @@ import { Suspense } from "react";
 import { GiftExtras } from "@/components/gift/gift-extras";
 import { LyricsStudio } from "@/components/ui/lyrics-studio";
 import { WaitForPayment } from "@/components/ui/wait-for-payment";
+import { formatPrice } from "@/lib/format";
 import { getLyricsGeneration, rewritesLeft } from "@/lib/generations";
+import { FREE_PREVIEW_REROLLS, songPricePence } from "@/lib/pricing";
 import { orderIdSchema } from "@/lib/validation";
 
 export const metadata: Metadata = {
@@ -12,28 +14,32 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-export default function LyricsStudioPage({ params }: PageProps<"/lyrics/[generationId]">) {
+export default function LyricsStudioPage({ params, searchParams }: PageProps<"/lyrics/[generationId]">) {
   return (
     <div className="bg-snow text-ink">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 md:py-16">
         <Suspense
           fallback={<h1 className="font-display text-4xl sm:text-5xl">Opening your song…</h1>}
         >
-          <Studio params={params} />
+          <Studio params={params} searchParams={searchParams} />
         </Suspense>
       </div>
     </div>
   );
 }
 
-async function Studio({ params }: Pick<PageProps<"/lyrics/[generationId]">, "params">) {
+async function Studio({
+  params,
+  searchParams,
+}: Pick<PageProps<"/lyrics/[generationId]">, "params" | "searchParams">) {
   const id = orderIdSchema.safeParse((await params).generationId);
   if (!id.success) notFound();
 
   const generation = await getLyricsGeneration(id.data);
-  if (!generation || !generation.order) notFound();
+  if (!generation) notFound();
+  const state = studioState(generation.order, (await searchParams).session_id);
 
-  if (generation.order.status === "pending") {
+  if (state === "confirming") {
     return (
       <>
         <h1 className="font-display text-4xl leading-tight sm:text-5xl">
@@ -43,7 +49,7 @@ async function Studio({ params }: Pick<PageProps<"/lyrics/[generationId]">, "par
       </>
     );
   }
-  if (generation.order.status === "refunded") {
+  if (state === "refunded") {
     return (
       <>
         <h1 className="font-display text-4xl leading-tight sm:text-5xl">This order was refunded</h1>
@@ -52,10 +58,17 @@ async function Studio({ params }: Pick<PageProps<"/lyrics/[generationId]">, "par
     );
   }
 
+  const paidOrderId = state === "paid" ? (generation.order?.id ?? null) : null;
+
   const studio = (
     <LyricsStudio
       generationId={generation.id}
-      orderId={generation.order.id}
+      orderId={paidOrderId}
+      paid={paidOrderId !== null}
+      priceLabel={formatPrice(songPricePence(generation.input.length))}
+      musicStyle={generation.input.musicStyle}
+      vocal={generation.input.vocal}
+      initialFreeRerollsLeft={Math.max(0, FREE_PREVIEW_REROLLS - generation.freeRerolls)}
       recipientName={generation.input.recipientName}
       senderName={generation.input.senderName}
       initialText={generation.text}
@@ -65,12 +78,12 @@ async function Studio({ params }: Pick<PageProps<"/lyrics/[generationId]">, "par
   );
 
   // Once the song is saved: send it, have it sung, add a voice greeting.
-  return generation.locked ? (
+  return generation.locked && paidOrderId ? (
     <>
       {studio}
       <GiftExtras
         generationId={generation.id}
-        orderId={generation.order.id}
+        orderId={paidOrderId}
         kind="lyrics"
         recipientName={generation.input.recipientName}
         senderName={generation.input.senderName}
@@ -80,4 +93,20 @@ async function Studio({ params }: Pick<PageProps<"/lyrics/[generationId]">, "par
   ) : (
     studio
   );
+}
+
+/**
+ * What the studio shows. Payment state comes only from the order the Stripe
+ * webhook marks paid. A pending order with a session_id means the buyer has
+ * just come back from Checkout; without one it's an abandoned checkout, so the
+ * free preview carries on.
+ */
+function studioState(
+  order: { status: "pending" | "paid" | "refunded" } | null,
+  sessionId: string | string[] | undefined,
+): "preview" | "confirming" | "paid" | "refunded" {
+  if (order?.status === "paid") return "paid";
+  if (order?.status === "refunded") return "refunded";
+  if (order?.status === "pending" && typeof sessionId === "string") return "confirming";
+  return "preview";
 }

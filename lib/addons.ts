@@ -100,3 +100,19 @@ export async function getAddonsFor(parentId: string): Promise<Partial<Record<Add
   }
   return result;
 }
+
+/**
+ * Whether an add-on may be recorded: its own order is paid, or (for the sung
+ * version that comes with every song) the parent song's order is paid.
+ */
+export async function isAddonPaid(addon: Addon): Promise<boolean> {
+  if (addon.order?.status === "paid") return true;
+  if (addon.kind !== "song_audio" || addon.order) return false;
+  const { data, error } = await createAdminClient()
+    .from("generations")
+    .select("orders(status)")
+    .eq("id", addon.parentId)
+    .maybeSingle<{ orders: { status: string }[] }>();
+  if (error) throw new Error(`Reading parent order failed: ${error.message}`);
+  return Boolean(data?.orders.some((o) => o.status === "paid"));
+}

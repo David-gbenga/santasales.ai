@@ -7,7 +7,10 @@ import { track } from "@/lib/analytics";
 type Option = { label: string; hint: string };
 
 type LyricsFormProps = {
-  priceLabel: string;
+  /** Price per length, e.g. { short: "£2.99" }; shown on each length choice. */
+  lengthPrices: Record<string, string>;
+  musicStyles: Record<string, Option>;
+  vocals: Record<string, string>;
   relationships: Record<string, string>;
   styles: Record<string, Option>;
   lengths: Record<string, Option>;
@@ -33,15 +36,21 @@ function ChoiceGroup({
   legend,
   name,
   options,
+  columns = 3,
+  onChange,
 }: {
   legend: string;
   name: string;
   options: Record<string, Option>;
+  columns?: 3 | 4;
+  onChange?: (value: string) => void;
 }) {
   return (
     <fieldset>
       <legend className="font-medium">{legend}</legend>
-      <div className="mt-2 grid gap-3 sm:grid-cols-3">
+      <div
+        className={`mt-2 grid gap-3 ${columns === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}
+      >
         {Object.entries(options).map(([value, { label, hint }], i) => (
           <label key={value} className="cursor-pointer">
             <input
@@ -49,6 +58,7 @@ function ChoiceGroup({
               name={name}
               value={value}
               defaultChecked={i === 0}
+              onChange={onChange ? () => onChange(value) : undefined}
               className="peer sr-only"
             />
             <span className="block h-full rounded-md border border-ink/25 bg-white px-4 py-3 transition-colors peer-checked:border-ink peer-checked:bg-ink peer-checked:text-snow peer-focus-visible:outline peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ember">
@@ -62,7 +72,18 @@ function ChoiceGroup({
   );
 }
 
-export function LyricsForm({ priceLabel, relationships, styles, lengths }: LyricsFormProps) {
+export function LyricsForm({
+  lengthPrices,
+  musicStyles,
+  vocals,
+  relationships,
+  styles,
+  lengths,
+}: LyricsFormProps) {
+  const [length, setLength] = useState(Object.keys(lengths)[0]);
+  const pricedLengths = Object.fromEntries(
+    Object.entries(lengths).map(([k, o]) => [k, { ...o, label: `${o.label} · ${lengthPrices[k]}` }]),
+  );
   const [details, setDetails] = useState("");
   const [status, setStatus] = useState<"idle" | "loading">("idle");
   const [error, setError] = useState("");
@@ -73,15 +94,17 @@ export function LyricsForm({ priceLabel, relationships, styles, lengths }: Lyric
     const form = new FormData(event.currentTarget);
     setStatus("loading");
     setError("");
-    track("checkout_start", { refId: "lyrics" });
+    track("cta_click", { refId: "preview:lyrics" });
 
     try {
-      const res = await fetch("/api/checkout", {
+      const res = await fetch("/api/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           kind: "lyrics",
           input: {
+            musicStyle: form.get("musicStyle"),
+            vocal: form.get("vocal"),
             recipientName: form.get("recipientName"),
             senderName: form.get("senderName"),
             relationship: form.get("relationship"),
@@ -93,11 +116,11 @@ export function LyricsForm({ priceLabel, relationships, styles, lengths }: Lyric
       });
       const body: { url?: string; error?: string } = await res.json().catch(() => ({}));
       if (!res.ok || !body.url)
-        throw new Error(body.error ?? "Checkout didn't open. Please try again.");
+        throw new Error(body.error ?? "Your preview didn't start. Please try again.");
       window.location.assign(body.url);
     } catch (err) {
       setStatus("idle");
-      setError(err instanceof Error ? err.message : "Checkout didn't open. Please try again.");
+      setError(err instanceof Error ? err.message : "Your preview didn't start. Please try again.");
     }
   }
 
@@ -156,8 +179,35 @@ export function LyricsForm({ priceLabel, relationships, styles, lengths }: Lyric
         </select>
       </label>
 
-      <ChoiceGroup legend="Style" name="style" options={styles} />
-      <ChoiceGroup legend="Length" name="length" options={lengths} />
+      <ChoiceGroup legend="Mood of the words" name="style" options={styles} />
+      <ChoiceGroup legend="Music style" name="musicStyle" options={musicStyles} columns={4} />
+
+      <fieldset>
+        <legend className="font-medium">Singer</legend>
+        <div className="mt-2 flex flex-wrap gap-3">
+          {Object.entries(vocals).map(([value, label], i) => (
+            <label key={value} className="cursor-pointer">
+              <input
+                type="radio"
+                name="vocal"
+                value={value}
+                defaultChecked={i === 0}
+                className="peer sr-only"
+              />
+              <span className="inline-flex min-h-12 items-center rounded-full border border-ink/25 bg-white px-5 font-semibold transition-colors peer-checked:border-ink peer-checked:bg-ink peer-checked:text-snow peer-focus-visible:outline peer-focus-visible:outline-3 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-ember">
+                {label}
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <ChoiceGroup
+        legend="Length (one price covers the words and the sung recording)"
+        name="length"
+        options={pricedLengths}
+        onChange={setLength}
+      />
 
       <div className="border-t border-line-snow pt-6">
         <button
@@ -165,11 +215,11 @@ export function LyricsForm({ priceLabel, relationships, styles, lengths }: Lyric
           disabled={status === "loading"}
           className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-ink px-7 text-base font-semibold text-snow transition-colors hover:bg-night-raised disabled:cursor-wait disabled:opacity-80 sm:w-auto"
         >
-          {status === "loading" ? "Opening checkout…" : `Pay ${priceLabel} and write my song`}
+          {status === "loading" ? "Starting your preview…" : "Write my song (free preview)"}
         </button>
         <p className="mt-3 text-sm text-ink-muted">
-          You&rsquo;ll pay on Stripe&rsquo;s secure page, then come straight back here while we
-          write the song.
+          We&rsquo;ll write the lyrics and record a 15-second sample first. Love it? Pay{" "}
+          {lengthPrices[length]} for the full sung song and downloads.
         </p>
         <p id={errorId} role="alert" className="mt-3 min-h-6 font-medium text-berry">
           {error}

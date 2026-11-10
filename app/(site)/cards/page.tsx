@@ -23,9 +23,9 @@ export default async function CardsPage() {
           Make a Christmas card that sounds like you
         </h1>
         <p className="mt-4 max-w-2xl text-lg leading-relaxed text-ink-muted">
-          Pick a design and tell us about the person it&rsquo;s for. After you pay {price}, we write
-          the message for them. Not quite right? You get {MAX_REGENERATIONS} rewrites, and you can
-          edit the words yourself before downloading.
+          Pick a design and tell us about the person it&rsquo;s for. We write the message and show
+          you the finished card, free. Love it? Pay {price} to download it, with {MAX_REGENERATIONS}{" "}
+          more rewrites and the option to edit the words yourself.
         </p>
 
         {designs.length === 0 ? (

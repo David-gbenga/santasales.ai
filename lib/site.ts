@@ -1,5 +1,5 @@
 import { formatPrice } from "@/lib/format";
-import { CARD_PRICE_PENCE, LYRICS_PRICE_PENCE } from "@/lib/pricing";
+import { CARD_PRICE_PENCE, PREVIEW_LIMITS, SONG_PRICE_BY_LENGTH } from "@/lib/pricing";
 
 /**
  * Brand and landing-page copy. Placeholder values — replace with the real
@@ -7,18 +7,19 @@ import { CARD_PRICE_PENCE, LYRICS_PRICE_PENCE } from "@/lib/pricing";
  */
 export const site = {
   name: "Snowpost",
-  tagline: "Christmas words, written for one person",
+  headline: "Intentional words and songs for your loved ones.",
+  tagline: "It takes a little to be intentional. It costs less to be kind.",
   description:
-    "Personal Christmas cards and song lyrics, written for the person you're giving them to. Plus printables you can download tonight.",
+    "Personal Christmas cards and sung songs, written for the person you're giving them to. Preview free, pay only if you love it.",
   // Static so the page can be fully prerendered (no request-time Date).
   copyrightYear: 2026,
 } as const;
 
 export const nav = [
-  { href: "/cards", label: "Cards" },
-  { href: "/lyrics", label: "Lyrics" },
-  { href: "/shop", label: "Shop" },
-  { href: "/gallery", label: "Gallery" },
+  { href: "/cards", label: "Make a card" },
+  { href: "/lyrics", label: "Write a song" },
+  { href: "/shop", label: "Browse the shop" },
+  { href: "/gallery", label: "See the gallery" },
 ] as const;
 
 export const legalLinks = [
@@ -31,7 +32,9 @@ export const legalLinks = [
 /** Display prices, derived from the same constants checkout charges (lib/pricing.ts). */
 export const displayPrices = {
   card: formatPrice(CARD_PRICE_PENCE),
-  lyrics: formatPrice(LYRICS_PRICE_PENCE),
+  /** Lowest song price (short); longer songs cost more. */
+  song: formatPrice(SONG_PRICE_BY_LENGTH.short),
+  songMax: formatPrice(SONG_PRICE_BY_LENGTH.long),
 } as const;
 
 export const cardSteps = [
@@ -40,16 +43,16 @@ export const cardSteps = [
     body: "Their name, how you know them, and the tone you want. Add a detail only you would know.",
   },
   {
-    title: "Pay once",
-    body: `${displayPrices.card} through Stripe. No account needed.`,
+    title: "Preview it free",
+    body: "We write a short, original message and show you the finished card. Not quite right? Try one more version, free.",
   },
   {
-    title: "Read your message",
-    body: "We write a short, original message for them. Not quite right? Try again up to three times, or edit the words yourself.",
+    title: "Love it? Pay once",
+    body: `${displayPrices.card} through Stripe, no account needed. Then edit the words or rewrite up to three more times.`,
   },
   {
     title: "Download and send",
-    body: "Get a print-ready PNG and PDF, 5×7 inches.",
+    body: "Get a print-ready PNG and PDF, 5×7 inches, or send it as a gift link.",
   },
 ] as const;
 
@@ -59,11 +62,15 @@ export const faqs = [
     a: "No. You pay with Stripe and we link your order to your email address and order number.",
   },
   {
-    q: "Why do I pay before the message is written?",
-    a: "Every message is written fresh for your recipient. Paying first covers that, and you get three rewrites plus the option to edit the words yourself.",
+    q: "Can I see it before I pay?",
+    a: `Yes. You see the whole card, or the full lyrics and a 15-second sung sample, before paying, and you can try one more version free. Downloads unlock once you pay. You can start up to ${PREVIEW_LIMITS.visitorPerDay} free previews a day.`,
   },
   {
-    q: "Are the cards and lyrics original?",
+    q: "How much does a song cost?",
+    a: `From ${displayPrices.song} to ${displayPrices.songMax}, depending on length. That one price covers the lyrics and the full sung recording.`,
+  },
+  {
+    q: "Are the cards and songs original?",
     a: "Yes. Every message and song is written new from your details. We never copy or rework existing songs or poems.",
   },
   {

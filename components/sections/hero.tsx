@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { HeroArt } from "@/components/three/hero-art";
 import { ButtonLink } from "@/components/ui/button-link";
-import { displayPrices } from "@/lib/site";
+import { displayPrices, site } from "@/lib/site";
+
+const textLink =
+  "inline-flex min-h-12 items-center px-1 font-semibold text-frost underline decoration-ember decoration-2 underline-offset-[6px] hover:decoration-frost sm:px-3";
 
 export function Hero() {
   return (
@@ -10,24 +13,28 @@ export function Hero() {
         <div className="relative z-10">
           <h1
             id="hero-title"
-            className="max-w-[11ch] text-balance font-display text-[clamp(2.9rem,7.2vw,5.75rem)] leading-[0.98] tracking-[-0.01em] text-frost"
+            className="max-w-[14ch] text-balance font-display text-[clamp(2.6rem,6.4vw,5.25rem)] leading-[1] tracking-[-0.01em] text-frost"
           >
-            Christmas words, written for one person.
+            {site.headline}
           </h1>
-          <p className="mt-6 max-w-[34rem] text-lg leading-relaxed text-frost-muted sm:text-xl">
-            Tell us who it&rsquo;s for and we&rsquo;ll write their card message or a short song
-            about them. Cards from {displayPrices.card}, lyrics from {displayPrices.lyrics}, and
-            printables you can download tonight.
+          <p className="mt-6 max-w-[34rem] text-lg leading-relaxed text-frost sm:text-xl">
+            It takes a little to be intentional.
+            <br />
+            It costs less to be kind.
+          </p>
+          <p className="mt-3 max-w-[34rem] leading-relaxed text-frost-muted">
+            Cards from {displayPrices.card}, sung songs from {displayPrices.song}. Preview free, pay
+            only if you love it.
           </p>
           <div className="mt-9 flex flex-wrap items-center gap-3">
             <ButtonLink href="/cards">Make a card</ButtonLink>
-            <ButtonLink href="/shop" variant="outline-night">
-              Browse the shop
+            <ButtonLink href="/lyrics" variant="outline-night">
+              Write a song
             </ButtonLink>
-            <Link
-              href="/gallery"
-              className="inline-flex min-h-12 items-center px-1 font-semibold sm:px-3 text-frost underline decoration-ember decoration-2 underline-offset-[6px] hover:decoration-frost"
-            >
+            <Link href="/shop" className={textLink}>
+              Browse the shop
+            </Link>
+            <Link href="/gallery" className={textLink}>
               See the gallery
             </Link>
           </div>

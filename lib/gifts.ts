@@ -138,7 +138,9 @@ export async function loadGift(token: string): Promise<Gift | null> {
   const addons = await getAddonsFor(g.id);
   const paidAudio = (kind: "song_audio" | "voice_greeting") => {
     const a = addons[kind];
-    return a?.order?.status === "paid" ? a.audioPath : null;
+    // Audio is only ever recorded after payment (the included sung song is covered by the
+    // song order, already checked above), so a stored recording is safe to show.
+    return a?.audioPath ?? null;
   };
 
   let lyrics: LyricsText | null = null;

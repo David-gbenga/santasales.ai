@@ -168,80 +168,22 @@ function Status({
 
 // ---------------------------------------------------------------------------
 
-export function SongAddon({
-  parentId,
-  priceLabel,
-  addon,
-}: {
-  parentId: string;
-  priceLabel: string;
-  addon: AddonState;
-}) {
-  const [style, setStyle] = useState<SongStyle>("cosy");
-  const [vocal, setVocal] = useState<Vocal>("female");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-
+/**
+ * The sung recording that comes with every song (decision 2026-11-10). It
+ * records automatically once the song is saved; no separate payment.
+ */
+export function SongAddon({ addon }: { addon: AddonState }) {
   return (
-    <section
-      aria-labelledby="song-addon-title"
-      className="rounded-xl border border-line-snow bg-white p-5"
-    >
+    <section aria-labelledby="song-addon-title" className="rounded-xl border border-line-snow bg-white p-5">
       <h2 id="song-addon-title" className="text-xl font-semibold">
-        Hear it sung
+        Your sung song
       </h2>
       {addon?.status === "paid" ? (
         <PaidSong addon={addon} />
-      ) : addon?.status === "pending" ? (
-        <p className="mt-2 text-ink-muted" role="status">
-          Confirming your payment… this updates in a few seconds.
-        </p>
       ) : (
-        <>
-          <p className="mt-1 text-ink-muted">
-            We&rsquo;ll record your lyrics as a full song with a real-sounding singer and music,
-            about 1 to 2 minutes long. Includes one retake. MP3 to download and share.
-          </p>
-          <div className="mt-4 space-y-4">
-            <Choice
-              legend="Style"
-              name="song-style"
-              options={SONG_STYLES}
-              value={style}
-              onChange={setStyle}
-            />
-            <Choice
-              legend="Singer"
-              name="song-vocal"
-              options={VOCALS}
-              value={vocal}
-              onChange={setVocal}
-            />
-          </div>
-          <button
-            type="button"
-            disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              const problem = await startCheckout(
-                { kind: "song_audio", parentGenerationId: parentId, input: { style, vocal } },
-                "addon:song",
-              );
-              if (problem) {
-                setError(problem);
-                setBusy(false);
-              }
-            }}
-            className={`${primary} mt-5`}
-          >
-            {busy ? "Opening checkout…" : `Pay ${priceLabel} and record my song`}
-          </button>
-          {error && (
-            <p role="alert" className="mt-2 font-medium text-berry">
-              {error}
-            </p>
-          )}
-        </>
+        <p className="mt-2 text-ink-muted" role="status">
+          Getting the recording studio ready… refresh in a moment if nothing happens.
+        </p>
       )}
     </section>
   );

@@ -11,8 +11,8 @@ export function HowCardsWork() {
             How a personal card gets made
           </h2>
           <p className="mt-4 max-w-md text-lg leading-relaxed text-frost-muted">
-            It takes about two minutes. Want a song instead? Lyrics work the same way, from{" "}
-            {displayPrices.lyrics}.
+            It takes about two minutes, and you see it before you pay. Want a song instead? Songs
+            work the same way, sung and recorded, from {displayPrices.song}.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <ButtonLink href="/cards">Make a card</ButtonLink>

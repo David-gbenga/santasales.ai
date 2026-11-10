@@ -88,6 +88,9 @@ export const lyricsInputSchema = z
     style: z.enum(LYRIC_STYLES),
     length: z.enum(LYRIC_LENGTHS),
     details: cleanText(CARD_BRIEF_MAX).optional().default(""),
+    // How it's sung (every song comes sung). Defaults keep older orders valid.
+    musicStyle: z.enum(SONG_STYLE_KEYS).default("cosy"),
+    vocal: z.enum(VOCAL_KEYS).default("female"),
   })
   .refine((v) => v.relationship || v.details.length >= MIN_BRIEF_WITHOUT_RELATIONSHIP, {
     message: "tell us who they are to you, or describe the song in your own words",
@@ -157,8 +160,8 @@ export const designSlugSchema = z
 /** Body of POST /api/checkout. Prices are never accepted from the client. */
 export const checkoutRequestSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("product"), productId: z.uuid() }),
-  z.object({ kind: z.literal("card"), designSlug: designSlugSchema, input: cardInputSchema }),
-  z.object({ kind: z.literal("lyrics"), input: lyricsInputSchema }),
+  // Pay for a card or song that was previewed for free (POST /api/preview).
+  z.object({ kind: z.literal("preview"), generationId: z.uuid() }),
   z.object({
     kind: z.literal("song_audio"),
     parentGenerationId: z.uuid(),
@@ -204,7 +207,13 @@ export type GenerateCardRequest = z.infer<typeof generateCardRequestSchema>;
 export const generateLyricsRequestSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("generate"), generationId: z.uuid() }),
   z.object({ action: z.literal("regenerate"), generationId: z.uuid() }),
-  z.object({ action: z.literal("finalize"), generationId: z.uuid(), text: lyricsTextSchema }),
+  z.object({
+    action: z.literal("finalize"),
+    generationId: z.uuid(),
+    text: lyricsTextSchema,
+    // Optional change of how it is sung, just before recording.
+    music: z.object({ musicStyle: z.enum(SONG_STYLE_KEYS), vocal: z.enum(VOCAL_KEYS) }).optional(),
+  }),
 ]);
 export type GenerateLyricsRequest = z.infer<typeof generateLyricsRequestSchema>;
 
@@ -222,3 +231,15 @@ export const trackEventSchema = z.object({
   referrer: z.string().max(1024).optional(),
 });
 export type TrackEvent = z.infer<typeof trackEventSchema>;
+
+
+// ---------------------------------------------------------------------------
+// Free previews
+
+/** Body of POST /api/preview: start a free preview (written before payment). */
+export const previewRequestSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("card"), designSlug: designSlugSchema, input: cardInputSchema }),
+  z.object({ kind: z.literal("lyrics"), input: lyricsInputSchema }),
+]);
+
+export const previewClipRequestSchema = z.object({ generationId: z.uuid() });

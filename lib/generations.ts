@@ -22,9 +22,13 @@ export type Generation<Input, Text> = {
   input: Input;
   text: Text | null;
   regenCount: number;
+  /** Free re-rolls used before paying (max FREE_PREVIEW_REROLLS). */
+  freeRerolls: number;
   locked: boolean;
   pngPath: string | null;
   pdfPath: string | null;
+  /** Short sung preview clip (songs only). */
+  previewAudioPath: string | null;
   order: OrderInfo | null;
 };
 export type CardGeneration = Generation<CardInput, CardText> & { designSlug: string };
@@ -37,9 +41,11 @@ type Row = {
   input: unknown;
   output_text: string | null;
   regen_count: number;
+  free_rerolls: number;
   locked: boolean;
   png_path: string | null;
   pdf_path: string | null;
+  preview_audio_path: string | null;
   orders: { id: string; status: OrderInfo["status"]; paid_at: string | null }[];
 };
 
@@ -63,7 +69,7 @@ async function loadGeneration<Input, Text>(
   const { data, error } = await createAdminClient()
     .from("generations")
     .select(
-      "id, kind, design_id, input, output_text, regen_count, locked, png_path, pdf_path, orders(id, status, paid_at)",
+      "id, kind, design_id, input, output_text, regen_count, free_rerolls, locked, png_path, pdf_path, preview_audio_path, orders(id, status, paid_at)",
     )
     .eq("id", id)
     .maybeSingle<Row>();
@@ -72,7 +78,7 @@ async function loadGeneration<Input, Text>(
 
   const input = inputSchema.safeParse(data.input);
   if (!input.success) throw new Error(`Generation ${id} has invalid input`);
-  const order = data.orders[0];
+  const order = data.orders.find((o) => o.status === "paid") ?? data.orders[0];
 
   return {
     id: data.id,
@@ -80,9 +86,11 @@ async function loadGeneration<Input, Text>(
     input: input.data,
     text: parseStored(data.output_text, textSchema),
     regenCount: data.regen_count,
+    freeRerolls: data.free_rerolls,
     locked: data.locked,
     pngPath: data.png_path,
     pdfPath: data.pdf_path,
+    previewAudioPath: data.preview_audio_path,
     order: order ? { id: order.id, status: order.status, paidAt: order.paid_at } : null,
   };
 }
@@ -179,4 +187,29 @@ export async function lockGeneration(
     .select("id");
   if (error) throw new Error(`Locking generation failed: ${error.message}`);
   return data.length > 0;
+}
+
+/** Claims the free pre-payment re-roll. False if it was already used. */
+export async function claimFreeReroll(id: string): Promise<boolean> {
+  const { data, error } = await createAdminClient()
+    .from("generations")
+    .update({ free_rerolls: 1 })
+    .eq("id", id)
+    .eq("free_rerolls", 0)
+    .eq("locked", false)
+    .select("id");
+  if (error) throw new Error(`Claiming free re-roll failed: ${error.message}`);
+  return data.length > 0;
+}
+
+export async function releaseFreeReroll(id: string): Promise<void> {
+  await createAdminClient().from("generations").update({ free_rerolls: 0 }).eq("id", id).eq("free_rerolls", 1);
+}
+
+export async function savePreviewAudio(id: string, path: string): Promise<void> {
+  const { error } = await createAdminClient()
+    .from("generations")
+    .update({ preview_audio_path: path })
+    .eq("id", id);
+  if (error) throw new Error(`Saving preview clip failed: ${error.message}`);
 }

@@ -39,10 +39,10 @@ export function CardForm({ designs, priceLabel, relationships, tones }: CardForm
     const form = new FormData(event.currentTarget);
     setStatus("loading");
     setError("");
-    track("checkout_start", { refId: `card:${design}` });
+    track("cta_click", { refId: `preview:card:${design}` });
 
     try {
-      const res = await fetch("/api/checkout", {
+      const res = await fetch("/api/preview", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -59,11 +59,11 @@ export function CardForm({ designs, priceLabel, relationships, tones }: CardForm
       });
       const body: { url?: string; error?: string } = await res.json().catch(() => ({}));
       if (!res.ok || !body.url)
-        throw new Error(body.error ?? "Checkout didn't open. Please try again.");
+        throw new Error(body.error ?? "Your preview didn't start. Please try again.");
       window.location.assign(body.url);
     } catch (err) {
       setStatus("idle");
-      setError(err instanceof Error ? err.message : "Checkout didn't open. Please try again.");
+      setError(err instanceof Error ? err.message : "Your preview didn't start. Please try again.");
     }
   }
 
@@ -193,11 +193,11 @@ export function CardForm({ designs, priceLabel, relationships, tones }: CardForm
             disabled={status === "loading"}
             className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-ink px-7 text-base font-semibold text-snow transition-colors hover:bg-night-raised disabled:cursor-wait disabled:opacity-80 sm:w-auto"
           >
-            {status === "loading" ? "Opening checkout…" : `Pay ${priceLabel} and write my card`}
+            {status === "loading" ? "Starting your preview…" : "Write my card (free preview)"}
           </button>
           <p className="mt-3 text-sm text-ink-muted">
-            You&rsquo;ll pay on Stripe&rsquo;s secure page, then come straight back here while we
-            write the message.
+            We&rsquo;ll write it and show you the whole card first. Love it? Pay {priceLabel} to
+            edit and download it.
           </p>
           <p id={errorId} role="alert" className="mt-3 min-h-6 font-medium text-berry">
             {error}

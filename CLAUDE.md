@@ -4,7 +4,7 @@ Instructions for Claude Code when working in this repository. Read `docs/PRD.md`
 
 ## Project summary
 
-A Christmas-themed website: digital product store (Stripe), clickable store-links gallery, AI Christmas card and lyrics generators (pay before generating), admin dashboard with an AI-written sales summary, and a 3D landing page. Target: shippable in 2 days. Favour simple, working solutions over clever ones.
+A Christmas-themed website: digital product store (Stripe), clickable store-links gallery, AI Christmas card and sung-song generators (free preview, pay to unlock), admin dashboard with an AI-written sales summary, and a 3D landing page. Target: shippable in 2 days. Favour simple, working solutions over clever ones.
 
 ## Tech stack
 
@@ -94,7 +94,7 @@ Keep `.env.example` in sync with this list. Never ask the user to paste key valu
 - Secret keys and the Supabase service-role client are **server-only** (`import 'server-only'`). Never expose them to client components.
 - Orders become `paid` **only** in the Stripe webhook after `stripe.webhooks.constructEvent` verifies the signature. Never trust the success-page redirect or client data for payment state.
 - Prices come from the database or server constants — never from the client request.
-- Generation routes must check: order paid, `regen_count < 3`, generation not locked.
+- Generation routes: unpaid generations may only write the first draft and one free re-roll (no finalize, no downloads; new previews are rate-limited by `preview_take`). Paid generations must check: order paid, `regen_count < 3`, generation not locked.
 - RLS enabled on every table. Anon may only read active `products`/`gallery_items` and insert into `events`.
 - All files (products, generated cards, uploads) in **private** buckets; serve via short-lived signed URLs. Exception: the public-read `media` bucket holds display images only (product previews, gallery images, card backgrounds); service role writes, PNG/JPEG/WebP only.
 - Content (products, gallery items, card designs) is data, never code: adding one must not need a deploy (PRD §6a).

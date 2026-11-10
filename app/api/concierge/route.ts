@@ -1,4 +1,3 @@
-import { createHmac } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -6,8 +5,8 @@ import { claudeModel, getAnthropic } from "@/lib/ai/claude";
 import { conciergeSystemPrompt } from "@/lib/ai/prompts/concierge";
 import { createConciergeTools } from "@/lib/concierge/tools";
 import { CONCIERGE_LIMITS, type ConciergeReply, type ConciergeWidget } from "@/lib/concierge/types";
-import { requireEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { visitorKey } from "@/lib/visitor";
 
 export const maxDuration = 60;
 
@@ -37,21 +36,9 @@ function conciergeModel(): string {
   return process.env.CONCIERGE_MODEL || claudeModel();
 }
 
-/** Keyed hash of the visitor's IP that changes daily: enough to rate-limit, useless to identify anyone. */
-function visitorKey(request: Request): string {
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "unknown";
-  const day = new Date().toISOString().slice(0, 10);
-  return createHmac("sha256", requireEnv("SUPABASE_SERVICE_ROLE_KEY"))
-    .update(`concierge:${day}:${ip}`)
-    .digest("hex");
-}
-
 async function withinLimits(request: Request): Promise<boolean> {
   const { data, error } = await createAdminClient().rpc("concierge_take", {
-    p_key: visitorKey(request),
+    p_key: visitorKey(request, "concierge"),
     p_visitor_limit: CONCIERGE_LIMITS.visitorPerDay,
     p_global_limit: CONCIERGE_LIMITS.globalPerDay,
   });

@@ -2,12 +2,27 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { PreviewBar, PreviewWatermark } from "@/components/ui/preview-bar";
+import {
+  SONG_STYLES,
+  SONG_STYLE_KEYS,
+  VOCALS,
+  VOCAL_KEYS,
+  type SongStyle,
+  type Vocal,
+} from "@/lib/audio-options";
 
 type LyricsWords = { title: string; body: string };
 
 type StudioProps = {
   generationId: string;
-  orderId: string;
+  /** Null until paid (free preview). */
+  orderId: string | null;
+  paid: boolean;
+  priceLabel: string;
+  initialFreeRerollsLeft: number;
+  musicStyle: SongStyle;
+  vocal: Vocal;
   recipientName: string;
   senderName: string;
   initialText: LyricsWords | null;
@@ -16,7 +31,12 @@ type StudioProps = {
 };
 
 type Busy = null | "generate" | "regenerate" | "finalize";
-type ApiReply = { text: LyricsWords; rewritesLeft: number; locked: boolean };
+type ApiReply = {
+  text: LyricsWords;
+  rewritesLeft: number;
+  freeRerollsLeft: number;
+  locked: boolean;
+};
 
 const BUSY_MESSAGES: Record<Exclude<Busy, null>, string> = {
   generate: "Writing your song. This takes about 15 seconds…",
@@ -43,13 +63,18 @@ function SongSheet({
   text,
   recipientName,
   senderName,
+  preview,
 }: {
   text: LyricsWords;
   recipientName: string;
   senderName: string;
+  preview: boolean;
 }) {
   return (
-    <article className="overflow-hidden rounded-lg bg-white shadow-[0_12px_40px_rgb(19_35_63/0.18)]">
+    <article
+      className="relative overflow-hidden rounded-lg bg-white shadow-[0_12px_40px_rgb(19_35_63/0.18)]"
+      style={{ containerType: "inline-size" }}
+    >
       <header className="bg-night px-6 py-7 text-frost sm:px-8">
         <h2 className="text-balance font-display text-3xl leading-tight sm:text-4xl">
           {text.title}
@@ -68,6 +93,7 @@ function SongSheet({
           </section>
         ))}
       </div>
+      {preview && <PreviewWatermark />}
     </article>
   );
 }
@@ -78,12 +104,15 @@ export function LyricsStudio(props: StudioProps) {
   const [draft, setDraft] = useState<LyricsWords | null>(props.initialText);
   const [editing, setEditing] = useState(false);
   const [rewrites, setRewrites] = useState(props.initialRewritesLeft);
+  const [freeLeft, setFreeLeft] = useState(props.initialFreeRerollsLeft);
+  const [music, setMusic] = useState({ musicStyle: props.musicStyle, vocal: props.vocal });
+  const { paid } = props;
   const [locked, setLocked] = useState(props.initialLocked);
   const [busy, setBusy] = useState<Busy>(null);
   const [error, setError] = useState("");
   const started = useRef(false);
   const router = useRouter();
-  const ids = { title: useId(), body: useId() };
+  const ids = { title: useId(), body: useId(), style: useId(), vocal: useId() };
 
   const call = useCallback(
     async (action: Exclude<Busy, null>, text?: LyricsWords) => {
@@ -93,7 +122,12 @@ export function LyricsStudio(props: StudioProps) {
         const res = await fetch("/api/generate/lyrics", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action, generationId, ...(text ? { text } : {}) }),
+          body: JSON.stringify({
+            action,
+            generationId,
+            ...(text ? { text } : {}),
+            ...(action === "finalize" ? { music } : {}),
+          }),
         });
         const body: Partial<ApiReply> & { error?: string } = await res.json().catch(() => ({}));
         if (!res.ok || !body.text)
@@ -102,6 +136,7 @@ export function LyricsStudio(props: StudioProps) {
         setDraft(body.text);
         setEditing(false);
         setRewrites(body.rewritesLeft ?? 0);
+        setFreeLeft(body.freeRerollsLeft ?? 0);
         setLocked(Boolean(body.locked));
         // Finished: re-render the page so the sharing and add-on sections appear.
         if (body.locked) router.refresh();
@@ -111,7 +146,7 @@ export function LyricsStudio(props: StudioProps) {
         setBusy(null);
       }
     },
-    [generationId, router],
+    [generationId, router, music],
   );
 
   useEffect(() => {
@@ -127,7 +162,12 @@ export function LyricsStudio(props: StudioProps) {
     <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-14">
       <div>
         {draft ? (
-          <SongSheet text={draft} recipientName={recipientName} senderName={senderName} />
+          <SongSheet
+            text={draft}
+            recipientName={recipientName}
+            senderName={senderName}
+            preview={!paid}
+          />
         ) : (
           <div
             role="img"
@@ -156,9 +196,11 @@ export function LyricsStudio(props: StudioProps) {
           {busy
             ? BUSY_MESSAGES[busy]
             : locked
-              ? "Download it below: a PDF to print and a text file to share."
+              ? "Download the words below. Your sung recording is underneath."
               : saved
-                ? "Read it through, or sing it. Rewrite it, or change any line you like."
+                ? paid
+                  ? "Read it through. Rewrite it, or change any line you like."
+                  : "Here’s your song. Listen to the sample, then unlock it below."
                 : ""}
         </p>
 
@@ -180,7 +222,20 @@ export function LyricsStudio(props: StudioProps) {
           </p>
         )}
 
-        {locked ? (
+        {!paid && saved ? (
+          <>
+            <SampleClip generationId={generationId} version={freeLeft} disabled={busy !== null} />
+            <PreviewBar
+              generationId={generationId}
+              noun="song"
+              priceLabel={props.priceLabel}
+              unlocks="the full sung recording, 3 more rewrites, editing, and the MP3, PDF and text downloads"
+              freeRerollsLeft={freeLeft}
+              busy={busy !== null}
+              onReroll={() => call("regenerate")}
+            />
+          </>
+        ) : !paid ? null : locked ? (
           <div className="mt-8 flex flex-wrap gap-3">
             <a
               href={`${download}?format=pdf`}
@@ -236,6 +291,45 @@ export function LyricsStudio(props: StudioProps) {
                 </>
               )}
 
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label htmlFor={ids.style} className="block font-medium">
+                    Music style
+                  </label>
+                  <select
+                    id={ids.style}
+                    value={music.musicStyle}
+                    disabled={busy !== null}
+                    onChange={(e) => setMusic({ ...music, musicStyle: e.target.value as SongStyle })}
+                    className={fieldClass}
+                  >
+                    {SONG_STYLE_KEYS.map((k) => (
+                      <option key={k} value={k}>
+                        {SONG_STYLES[k].label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor={ids.vocal} className="block font-medium">
+                    Singer
+                  </label>
+                  <select
+                    id={ids.vocal}
+                    value={music.vocal}
+                    disabled={busy !== null}
+                    onChange={(e) => setMusic({ ...music, vocal: e.target.value as Vocal })}
+                    className={fieldClass}
+                  >
+                    {VOCAL_KEYS.map((k) => (
+                      <option key={k} value={k}>
+                        {VOCALS[k].label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
               <div className="flex flex-wrap items-center gap-3 border-t border-line-snow pt-6">
                 <button
                   type="button"
@@ -243,7 +337,7 @@ export function LyricsStudio(props: StudioProps) {
                   onClick={() => call("finalize", draft)}
                   className="inline-flex min-h-12 items-center rounded-full bg-ink px-7 font-semibold text-snow hover:bg-night-raised disabled:cursor-wait disabled:opacity-70"
                 >
-                  {busy === "finalize" ? "Saving your song…" : "Save my song"}
+                  {busy === "finalize" ? "Saving your song…" : "Save and record my song"}
                 </button>
                 <button
                   type="button"
@@ -267,7 +361,8 @@ export function LyricsStudio(props: StudioProps) {
                 {rewrites === 0
                   ? "No rewrites left: edit the words instead."
                   : `${rewrites} ${rewrites === 1 ? "rewrite" : "rewrites"} left.`}{" "}
-                Saving locks the words, so check names and spelling first.
+                Saving locks the words and starts the sung recording, so check names and spelling
+                first.
               </p>
               {edited && (
                 <p className="text-sm text-ink-muted">
@@ -285,6 +380,94 @@ export function LyricsStudio(props: StudioProps) {
           )
         )}
       </div>
+    </div>
+  );
+}
+
+/** A finished clip request, tagged with the request it answers. */
+type ClipResult = { key: string } & (
+  | { status: "ready"; url: string }
+  | { status: "error"; message: string }
+);
+
+const CLIP_FAILED = "The sample couldn’t be recorded just now.";
+
+/**
+ * The 15-second sung sample on a free preview. The server keeps one clip per
+ * free version, so `version` changing after the re-roll fetches the new one.
+ */
+function SampleClip({
+  generationId,
+  version,
+  disabled,
+}: {
+  generationId: string;
+  version: number;
+  disabled: boolean;
+}) {
+  const [attempt, setAttempt] = useState(0);
+  const [result, setResult] = useState<ClipResult | null>(null);
+  const key = `${version}:${attempt}`;
+  // Loading until the result for this exact version and attempt arrives.
+  const clip = !disabled && result?.key === key ? result : { status: "loading" as const };
+
+  useEffect(() => {
+    if (disabled) return;
+    let cancelled = false;
+    fetch("/api/preview/clip", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ generationId }),
+    })
+      .then(async (res) => {
+        const body: { url?: string; error?: string } = await res.json().catch(() => ({}));
+        if (!res.ok || !body.url) throw new Error(body.error ?? CLIP_FAILED);
+        if (!cancelled) setResult({ key, status: "ready", url: body.url });
+      })
+      .catch((err: unknown) => {
+        if (!cancelled)
+          setResult({
+            key,
+            status: "error",
+            message: err instanceof Error ? err.message : CLIP_FAILED,
+          });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [generationId, key, disabled]);
+
+  return (
+    <div className="mt-6 rounded-xl border border-line-snow bg-white p-5">
+      <p className="font-semibold">Hear a 15-second sample</p>
+      {clip.status === "loading" && (
+        <p role="status" className="mt-2 text-ink-muted">
+          Recording a sample of the chorus. This takes up to a minute…
+        </p>
+      )}
+      {clip.status === "ready" && (
+        <audio
+          controls
+          preload="metadata"
+          src={clip.url}
+          controlsList="nodownload"
+          className="mt-3 w-full"
+        >
+          Your browser can’t play this sample. The full lyrics are shown alongside.
+        </audio>
+      )}
+      {clip.status === "error" && (
+        <p role="alert" className="mt-2 text-berry">
+          {clip.message}{" "}
+          <button
+            type="button"
+            onClick={() => setAttempt((a) => a + 1)}
+            className="underline underline-offset-4"
+          >
+            Try again
+          </button>
+        </p>
+      )}
     </div>
   );
 }

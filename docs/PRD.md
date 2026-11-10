@@ -16,13 +16,13 @@ A Christmas-themed website that sells digital products, showcases external produ
 | Payments | Stripe Checkout (hosted); Stripe Tax off for now (individual seller, see F2) |
 | AI | Claude API |
 | Analytics | Own `events` table in Supabase, cookie-free |
-| AI pricing model | **Pay before generating** — customer pays, then generates |
+| AI pricing model | ~~Pay before generating~~ — **changed 2026-11-10: preview first, pay to unlock** (see F11) |
 
 ### Assumptions (change these if wrong)
-- A1. Prices are in GBP. Placeholder prices: card £[2.99], lyrics £[1.99], digital products set per product.
+- A1. Prices are in GBP. Card £2.99. Song (lyrics + sung recording, one price) by length: short £2.99, standard £3.49, long £3.99 (decision 2026-11-10). Digital products set per product.
 - A2. No customer accounts. Buyers are identified by their Stripe Checkout email and order ID.
 - A3. One admin (you), signing in by email magic link.
-- A4. Each paid card or lyrics order allows **3 regenerations** before the result is locked.
+- A4. Each card or song gets **1 free re-roll** as a preview, then **3 regenerations** after payment before the result is locked.
 - A5. Card output is a single-sided PNG (1500×2100 px, 5×7 in at 300 dpi) plus a PDF of the same image.
 - A6. Download links expire after **24 hours**; buyers can request a fresh link from the order page within 30 days.
 - A7. Uploaded customer photos are deleted automatically after 30 days.
@@ -47,11 +47,11 @@ Landing → Shop → Product page → "Buy" → Stripe Checkout → Success page
 **J2 — Click through to a store**
 Landing → Gallery → click product image → opens store page in a new tab (click is logged).
 
-**J3 — Create an AI card (pay first)**
-Cards → choose design → enter recipient name, sender name, relationship, tone, optional note (and optional photo) → "Pay £X & create" → Stripe Checkout → back to the card studio → AI writes the message → preview → regenerate (max 3) or edit wording → download PNG + PDF.
+**J3 — Create an AI card (preview first)**
+Cards → choose design → describe the card, names, tone → "Write my card (free preview)" → studio shows the whole card with a PREVIEW watermark → one free re-roll → "Pay £2.99" → Stripe Checkout → back to the studio → regenerate (max 3) or edit wording → download PNG + PDF.
 
-**J4 — Create AI lyrics (pay first)**
-Lyrics → enter recipient, details to include, style (cheerful / sentimental / funny), length → pay → lyrics generated → regenerate (max 3) → download PDF/TXT, plus backing track MP3 if offered.
+**J4 — Create a song (preview first)**
+Lyrics → recipient, details, mood (cheerful / sentimental / funny), music style, singer, length (price shown per length) → "Write my song (free preview)" → full lyrics (watermarked) + 15-second sung sample of the chorus → one free re-roll → pay → regenerate (max 3) or edit → save → full sung recording is made → download MP3, PDF, TXT.
 
 **J5 — Admin weekly check**
 /admin → magic-link sign-in → KPIs, charts, top items → read AI summary (or click "Regenerate summary").
@@ -63,7 +63,7 @@ Lyrics → enter recipient, details to include, style (cheerful / sentimental / 
 Priority: **P0** = must ship in the 2 days · **P1** = ship if time allows · **P2** = later phase.
 
 ### F1. 3D landing page — P0
-One hero scene (recommended: a slowly rotating glass ornament with falling snow), headline, CTAs to Cards, Shop and Gallery, then smooth-scrolling sections: featured products, how the card generator works, gallery teaser, FAQ, footer.
+One hero scene (recommended: a slowly rotating glass ornament with falling snow), headline ("Intentional words and songs for your loved ones." with "It takes a little to be intentional. It costs less to be kind." under it, decision 2026-11-10), CTAs and nav: Make a card · Write a song · Browse the shop · See the gallery, then smooth-scrolling sections: featured products, how the card generator works, gallery teaser, FAQ, footer.
 
 **User stories**
 - As a visitor, I see an eye-catching festive scene immediately, so the site feels special.
@@ -101,8 +101,8 @@ Masonry/grid of product images, each linking to an external store page.
 **Acceptance criteria**
 - 3–4 designs at launch. ~~Defined in code (`lib/card-designs.ts`)~~ — **changed 2026-11-10:** designs live in a `card_designs` table (name, background image in the public `media` bucket, text layout, sort, active) so new designs can be added without a code change or redeploy.
 - Inputs validated server-side (length limits, required fields).
-- Pay first: form inputs saved to a pending `generations` row → Stripe Checkout with `generation_id` in metadata → webhook marks paid.
-- `/api/generate/card` refuses unless the linked order is paid and `regen_count < 3`.
+- ~~Pay first~~ **Preview first (2026-11-10, F11):** form inputs saved to an unpaid `generations` row via `POST /api/preview`; the studio writes the first draft; paying (`POST /api/checkout` `{kind:"preview"}`) creates the order, and the webhook marks it paid.
+- `/api/generate/card`: unpaid → first draft and one free re-roll only, no finalize or downloads; paid → `regen_count < 3` and not locked.
 - Claude writes a message of 30–80 words matching tone and relationship; prompt tells it to stay family-friendly and not to reproduce existing poems or song lyrics.
 - Customer can lightly edit the generated text before final render.
 - **Added 2026-11-10 — own words:** the form's main field is "Describe the card in your own words" (≤ 500 chars) with tap-to-add idea chips; relationship becomes optional when the description says enough, and tone stays as a suggestion. Claude treats the description as the main brief and follows reasonable content/style wishes (mention X, make it rhyme, keep it short) without letting it override the safety and originality rules (prompt `card-v2`).
@@ -111,11 +111,11 @@ Masonry/grid of product images, each linking to an external store page.
 
 ### F5. AI lyrics generator — P0
 **Acceptance criteria**
-- Same pay-first flow as F4 (`kind = 'lyrics'`).
+- Same preview-first flow as F4 (`kind = 'lyrics'`), priced by length, and every song comes sung (F10).
 - Claude writes **original** lyrics (verse/chorus structure) using the customer's details; must not copy or parody existing songs.
 - Output downloadable as PDF and TXT.
 - If a backing track is configured, the download page also offers the MP3 (a file you own the rights to).
-- Out of scope: AI-sung audio (P2).
+- ~~Out of scope: AI-sung audio (P2).~~ Every song is now sung (F10, F11).
 
 ### F6. Admin dashboard with AI summary — P0 (scheduled summary P1)
 **Acceptance criteria**
@@ -131,8 +131,8 @@ Masonry/grid of product images, each linking to an external store page.
 A chat on the landing page that asks who the gift is for, their budget and style, then recommends shop products (and gallery items, labelled as affiliate links), cards and songs, and starts checkout.
 
 **Acceptance criteria**
-- Claude with tool use (SDK tool runner, max 6 tool rounds per message). **As built:** `search_gifts` (shop + gallery), `show_products`, `list_card_designs`, `offer_card` and `offer_song` (validate the same fields as the forms and show the offer with a one-line teaser). **The agent never creates a checkout session**: offers carry the prepared fields, and the shopper's own Pay click sends them to `POST /api/checkout`, so there is one payment path with server prices. The agent never sees payment details or changes prices.
-- **Previews are teasers only** (decision 2026-11-10): the design plus one opening line (≤ 15 words); the full card or song is written after payment, as with the forms.
+- Claude with tool use (SDK tool runner, max 6 tool rounds per message). **As built:** `search_gifts` (shop + gallery), `show_products`, `list_card_designs`, `offer_card` and `offer_song` (validate the same fields as the forms and show the offer with a one-line teaser). **The agent never creates a checkout session**: offers carry the prepared fields, and the shopper's own click sends them to `POST /api/preview` (a free preview; F11), then they pay from the studio, so there is one payment path with server prices. The agent never sees payment details or changes prices.
+- **Previews are teasers only** (decision 2026-11-10): the design plus one opening line (≤ 15 words); in chat. ~~The full card or song is written after payment~~ — the offer button now opens a full free preview (F11).
 - Per-visitor limit (40 messages/day, keyed by a daily-rotating HMAC of the IP — no raw IPs stored) and a global cap (3,000 messages/day) via the `concierge_take` database function; the Anthropic spending limit is the backstop. **Model:** `CONCIERGE_MODEL` (Claude Haiku 5.5, decision 2026-11-10), falling back to `ANTHROPIC_MODEL`.
 - Chats are not stored beyond what a checkout needs; the Privacy page mentions the concierge.
 - Lazy-loaded (landing page stays ≥ 80 mobile Performance); keyboard and screen-reader usable, replies announced politely.
@@ -144,10 +144,18 @@ A chat on the landing page that asks who the gift is for, their budget and style
 - Sending uses the buyer's own apps: WhatsApp (`wa.me` link), email (`mailto:`), copy link, and the phone's share sheet. Nothing is sent from our servers (server email via Resend needs a verified domain; later).
 
 ### F10. ElevenLabs audio add-ons — P1 (added 2026-11-10, built as Phase 5c)
-- **Sung version** of finished lyrics (£3.99 placeholder): ElevenLabs Music `music_v2_5`, lyrics passed verbatim as a composition plan (one chunk per section), style (cosy acoustic / upbeat pop / big band swing / piano ballad) and singer (female/male). Two takes. MP3 download and on the gift page. Supersedes the "AI-sung songs" P2 item below.
+- **Sung version** of finished lyrics — **changed 2026-11-10: included in the song price, no separate add-on;** music style and singer are chosen on the form and can be changed before saving. Recorded when the song is saved: ElevenLabs Music `music_v2_5`, lyrics passed verbatim as a composition plan (one chunk per section), style (cosy acoustic / upbeat pop / big band swing / piano ballad) and singer (female/male). Two takes. MP3 download and on the gift page. Supersedes the "AI-sung songs" P2 item below.
 - **Voice greeting** for a finished card or song (£1.49 placeholder): ElevenLabs text-to-speech, 4 built-in British voices (no voice cloning), ≤ 400 characters, three takes (words and voice editable).
-- Add-ons are their own pay-first generations/orders linked by `generations.parent_id`; takes are claimed atomically and returned on failure. `ELEVENLABS_API_KEY` needs only Text to Speech and Music permissions.
+- Add-ons are child generations linked by `generations.parent_id` (the voice greeting has its own order; the sung version is paid by the song's order); takes are claimed atomically and returned on failure. `ELEVENLABS_API_KEY` needs only Text to Speech and Music permissions.
 - **Licensing to confirm with ElevenLabs before selling:** their Music Terms limit Starter/Creator/Pro plans to "individual use"; Scale/Business/Enterprise cover businesses. Monthly music-minute limits apply per plan.
+### F11. Preview before payment — P0 (added 2026-11-10)
+- Every card and song can be previewed in full before paying, but nothing can be downloaded until the webhook marks the order paid.
+- Card preview: the whole card, rendered in the browser with a repeated "PREVIEW" watermark; PNG/PDF are only rendered after payment.
+- Song preview: the full lyrics (watermarked) plus a 15-second sung sample of the chorus (ElevenLabs Music, one clip per free version, stored privately, served by 1-hour signed URL).
+- One free re-roll per preview (`generations.free_rerolls`, 0–1), then 3 paid rewrites.
+- Limits: 5 new previews per visitor per day (keyed, daily-rotating hash of the IP; no cookies) and 400 per day site-wide (`preview_take`), so Claude and ElevenLabs costs stay bounded.
+- The concierge's card and song offers start a free preview too.
+
 - **Live AI phone calls: out of scope** (decision 2026-11-10) — recipient consent rules (AI voices count as "artificial voices"), abuse risk, Twilio setup. Revisit post-launch with legal advice and a recipient opt-in step.
 
 ### F7. Legal & trust pages — P0
@@ -198,6 +206,7 @@ generations (
   design_id text null, input jsonb, output_text text,
   png_path text null, pdf_path text null, photo_path text null,
   regen_count int default 0, locked bool default false,
+  free_rerolls int default 0, preview_audio_path text null,   -- F11
   created_at timestamptz
 )
 

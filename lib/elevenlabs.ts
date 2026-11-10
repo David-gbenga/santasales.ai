@@ -97,3 +97,19 @@ export function composeSong(lyrics: LyricsText, style: SongStyle, vocal: Vocal):
     280_000,
   );
 }
+
+/** Length of the free sung preview clip. */
+export const PREVIEW_CLIP_MS = 15_000;
+
+/**
+ * Short sung preview of the chorus (or the first section if there's no
+ * chorus), for the free song preview before payment. ~250 credits.
+ */
+export function composePreviewClip(lyrics: LyricsText, style: SongStyle, vocal: Vocal): Promise<Buffer> {
+  const sections = parseLyricsBody(lyrics.body).filter((s) => s.lines.length > 0);
+  const chorus = sections.find((s) => s.label?.toLowerCase().startsWith("chorus")) ?? sections[0];
+  if (!chorus) throw new ElevenLabsError("No lyrics to sing", 422);
+  const plan = compositionPlan({ title: lyrics.title, body: `[${chorus.label ?? "Chorus"}]\n${chorus.lines.join("\n")}` }, style, vocal);
+  plan.chunks = plan.chunks.slice(0, 1).map((c) => ({ ...c, duration_ms: PREVIEW_CLIP_MS }));
+  return post("/music?output_format=mp3_44100_128", { model_id: "music_v2_5", composition_plan: plan }, 120_000);
+}

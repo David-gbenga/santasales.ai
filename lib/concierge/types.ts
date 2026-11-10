@@ -2,7 +2,7 @@
 
 export type ConciergeMessage = { role: "user" | "assistant"; content: string };
 
-/** Fields posted unchanged to /api/checkout when the shopper presses Pay. */
+/** Fields posted unchanged to /api/preview when the shopper starts a preview. */
 export type CardCheckoutInput = {
   recipientName: string;
   senderName: string;
