@@ -6,7 +6,7 @@ import { requireEnv } from "@/lib/env";
 
 let client: Anthropic | undefined;
 
-function getClient(): Anthropic {
+export function getAnthropic(): Anthropic {
   client ??= new Anthropic({
     apiKey: requireEnv("ANTHROPIC_API_KEY"),
     timeout: 60_000, // ms; short creative replies finish well within this
@@ -61,7 +61,7 @@ export async function generateStructured<Schema extends z.ZodType>({
   for (let attempt = 1; attempt <= 2; attempt++) {
     let response;
     try {
-      response = await getClient().beta.messages.parse({
+      response = await getAnthropic().beta.messages.parse({
         model: claudeModel(),
         max_tokens: maxTokens,
         system: prompt.system,

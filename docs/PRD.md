@@ -131,9 +131,9 @@ Masonry/grid of product images, each linking to an external store page.
 A chat on the landing page that asks who the gift is for, their budget and style, then recommends shop products (and gallery items, labelled as affiliate links), cards and songs, and starts checkout.
 
 **Acceptance criteria**
-- Claude with tool use (SDK tool runner). Tools only search, describe and start checkout: `search_products`, `list_card_designs`, `draft_card_brief` (turns the chat into the card form's fields), `card_teaser`, `create_checkout_session` (same server prices and pay-first flow as the forms). The agent never sees payment details or changes prices.
-- **Previews are teasers only** (decision 2026-11-10): the design plus one opening line; the full message is written after payment, as with the form. Same later for lyrics.
-- Per-visitor message limits and a daily cap on concierge AI calls; the Anthropic spending limit is the backstop. Concierge model is configurable separately from the card writer.
+- Claude with tool use (SDK tool runner, max 6 tool rounds per message). **As built:** `search_gifts` (shop + gallery), `show_products`, `list_card_designs`, `offer_card` and `offer_song` (validate the same fields as the forms and show the offer with a one-line teaser). **The agent never creates a checkout session**: offers carry the prepared fields, and the shopper's own Pay click sends them to `POST /api/checkout`, so there is one payment path with server prices. The agent never sees payment details or changes prices.
+- **Previews are teasers only** (decision 2026-11-10): the design plus one opening line (≤ 15 words); the full card or song is written after payment, as with the forms.
+- Per-visitor limit (40 messages/day, keyed by a daily-rotating HMAC of the IP — no raw IPs stored) and a global cap (3,000 messages/day) via the `concierge_take` database function; the Anthropic spending limit is the backstop. **Model:** `CONCIERGE_MODEL` (Claude Haiku 5.5, decision 2026-11-10), falling back to `ANTHROPIC_MODEL`.
 - Chats are not stored beyond what a checkout needs; the Privacy page mentions the concierge.
 - Lazy-loaded (landing page stays ≥ 80 mobile Performance); keyboard and screen-reader usable, replies announced politely.
 - Bundles (one payment, one discount) remain P2: v1 recommends several items, each with its own checkout.
