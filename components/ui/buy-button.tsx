@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { track } from "@/lib/analytics";
 
 type State = { status: "idle" } | { status: "loading" } | { status: "error"; message: string };
 
@@ -10,6 +11,7 @@ export function BuyButton({ productId, label }: { productId: string; label: stri
 
   async function startCheckout() {
     setState({ status: "loading" });
+    track("checkout_start", { refId: productId });
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",

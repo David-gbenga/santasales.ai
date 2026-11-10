@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 640" width="600" height="640">
+  <rect width="600" height="640" fill="#0d1a31"/>
+  <rect x="24" y="24" width="552" height="592" rx="10" fill="none" stroke="#f4f7fa" stroke-opacity="0.45" stroke-width="2"/>
+  <path d="M60 200 q120 90 240 0 t240 0" fill="none" stroke="#a9b8cc" stroke-width="4"/><g><circle cx="120" cy="245" r="18" fill="#f2a541"/><circle cx="200" cy="262" r="18" fill="#c8324a"/><circle cx="300" cy="200" r="18" fill="#f7b95f"/><circle cx="400" cy="160" r="18" fill="#2f6b5a"/><circle cx="480" cy="170" r="18" fill="#f2a541"/></g>
+  <text x="300" y="580" text-anchor="middle" font-family="Georgia, serif" font-size="40" fill="#f4f7fa">Fairy lights</text>
+  <text x="300" y="612" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#f4f7fa" fill-opacity="0.75">Placeholder image</text>
+</svg>

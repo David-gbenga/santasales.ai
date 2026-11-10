@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 820" width="600" height="820">
+  <rect width="600" height="820" fill="#f2a541"/>
+  <rect x="24" y="24" width="552" height="772" rx="10" fill="none" stroke="#13233f" stroke-opacity="0.45" stroke-width="2"/>
+  <path d="M180 180 l70 -40 h100 l70 40 l70 120 l-60 30 l-30 -50 v260 h-200 v-260 l-30 50 l-60 -30 z" fill="#13233f"/><path d="M230 330 h140 M230 370 h140" stroke="#f4f7fa" stroke-width="10" stroke-dasharray="14 10"/><path d="M300 400 l-25 45 h50 z" fill="#2f6b5a"/>
+  <text x="300" y="760" text-anchor="middle" font-family="Georgia, serif" font-size="40" fill="#13233f">Christmas jumper</text>
+  <text x="300" y="792" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#13233f" fill-opacity="0.75">Placeholder image</text>
+</svg>

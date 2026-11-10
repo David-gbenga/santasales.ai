@@ -18,3 +18,15 @@ export const stripeSessionIdSchema = z
   .regex(/^cs_(test|live)_[A-Za-z0-9]+$/);
 
 export const orderIdSchema = z.uuid();
+
+export const EVENT_TYPES = ["page_view", "gallery_click", "cta_click", "checkout_start"] as const;
+export type EventType = (typeof EVENT_TYPES)[number];
+
+/** Body of POST /api/track. Limits match the events table's check constraints. */
+export const trackEventSchema = z.object({
+  type: z.enum(EVENT_TYPES),
+  path: z.string().startsWith("/").max(512),
+  refId: z.string().max(128).optional(),
+  referrer: z.string().max(1024).optional(),
+});
+export type TrackEvent = z.infer<typeof trackEventSchema>;

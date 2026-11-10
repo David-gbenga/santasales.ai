@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 760" width="600" height="760">
+  <rect width="600" height="760" fill="#f4f7fa"/>
+  <rect x="24" y="24" width="552" height="712" rx="10" fill="none" stroke="#13233f" stroke-opacity="0.45" stroke-width="2"/>
+  <path d="M150 200 q150 -40 150 0 v300 q0 -40 -150 0 z" fill="#c8324a"/><path d="M450 200 q-150 -40 -150 0 v300 q0 -40 150 0 z" fill="#2f6b5a"/><path d="M300 200 v300" stroke="#13233f" stroke-width="4"/>
+  <text x="300" y="700" text-anchor="middle" font-family="Georgia, serif" font-size="40" fill="#13233f">Winter story book</text>
+  <text x="300" y="732" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#13233f" fill-opacity="0.75">Placeholder image</text>
+</svg>

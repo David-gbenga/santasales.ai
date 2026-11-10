@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 900" width="600" height="900">
+  <rect width="600" height="900" fill="#2f6b5a"/>
+  <rect x="24" y="24" width="552" height="852" rx="10" fill="none" stroke="#f4f7fa" stroke-opacity="0.45" stroke-width="2"/>
+  <path d="M240 140 h110 v330 l90 90 a60 60 0 0 1 -60 110 l-140 -110 z" fill="#f4f7fa"/><rect x="240" y="140" width="110" height="60" fill="#c8324a"/><path d="M250 260 h90 M250 320 h90 M250 380 h90" stroke="#c8324a" stroke-width="12"/>
+  <text x="300" y="840" text-anchor="middle" font-family="Georgia, serif" font-size="40" fill="#f4f7fa">Knitted socks</text>
+  <text x="300" y="872" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#f4f7fa" fill-opacity="0.75">Placeholder image</text>
+</svg>

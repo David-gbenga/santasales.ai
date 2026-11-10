@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { requireEnv } from "@/lib/env";
+import { uncachedFetch } from "@/lib/supabase/server";
 
 let admin: SupabaseClient | undefined;
 
@@ -14,6 +15,8 @@ export function createAdminClient(): SupabaseClient {
     requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
     {
       auth: { persistSession: false, autoRefreshToken: false },
+      // Orders and files must always be read fresh (e.g. pending → paid).
+      global: { fetch: uncachedFetch },
     },
   );
   return admin;

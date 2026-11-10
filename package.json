@@ -11,7 +11,8 @@
     "format": "prettier --write .",
     "test": "vitest run --passWithNoTests",
     "test:e2e": "playwright test",
-    "seed:placeholders": "node scripts/seed-placeholder-products.mjs"
+    "seed:placeholders": "node scripts/seed-placeholder-products.mjs",
+    "seed:gallery": "node scripts/seed-placeholder-gallery.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
