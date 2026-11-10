@@ -10,6 +10,7 @@ import { getCardGeneration, rewritesLeft } from "@/lib/generations";
 import { mediaUrl } from "@/lib/media";
 import { CARD_PRICE_PENCE, FREE_PREVIEW_REROLLS } from "@/lib/pricing";
 import { orderIdSchema } from "@/lib/validation";
+import { defaultGreeting } from "@/lib/occasions";
 
 export const metadata: Metadata = {
   title: "Your card",
@@ -76,6 +77,7 @@ async function Studio({
       initialFreeRerollsLeft={Math.max(0, FREE_PREVIEW_REROLLS - generation.freeRerolls)}
       recipientName={recipient}
       senderName={generation.input.senderName}
+      anonymous={generation.input.anonymous}
       design={{
         name: design.name,
         imageUrl: mediaUrl(design.backgroundPath),
@@ -97,7 +99,9 @@ async function Studio({
         kind="card"
         recipientName={recipient}
         senderName={generation.input.senderName}
-        defaultGreeting={`Merry Christmas, ${recipient}! I hope you love your card. Lots of love, ${generation.input.senderName}.`}
+        anonymous={generation.input.anonymous}
+        occasion={generation.input.occasion}
+        defaultGreeting={defaultGreeting("card", generation.input)}
       />
     </>
   ) : (

@@ -62,10 +62,7 @@ export const POST = createGenerationRoute<LyricsInput, LyricsText, LyricsGenerat
   },
 
   async render(generation, text, request) {
-    const credit = {
-      recipientName: generation.input.recipientName,
-      senderName: generation.input.senderName,
-    };
+    const credit = generation.input;
     const base = `lyrics/${generation.id}`;
     await uploadGenerated([
       { path: `${base}/lyrics.pdf`, body: await renderLyricsPdf(text, credit), contentType: "application/pdf" },

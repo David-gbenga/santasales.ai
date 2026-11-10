@@ -36,7 +36,8 @@ async function backgroundDataUrl(design: CardDesign): Promise<string> {
 export async function renderCardPng(
   design: CardDesign,
   text: CardText,
-  senderName: string,
+  /** Null for an anonymous card: nothing goes under the sign-off. */
+  senderName: string | null,
 ): Promise<Buffer> {
   const [fonts, background] = await Promise.all([loadFonts(), backgroundDataUrl(design)]);
   const { layout } = design;
@@ -110,7 +111,7 @@ export async function renderCardPng(
           }}
         >
           <div style={{ display: "flex" }}>{text.signOff}</div>
-          <div style={{ display: "flex", color: accent }}>{senderName}</div>
+          {senderName && <div style={{ display: "flex", color: accent }}>{senderName}</div>}
         </div>
       </div>
     </div>,
@@ -132,7 +133,7 @@ export async function renderCardPng(
 export async function cardPdfFromPng(png: Buffer, title: string): Promise<Buffer> {
   const pdf = await PDFDocument.create();
   pdf.setTitle(title);
-  pdf.setCreator("Snowpost");
+  pdf.setCreator("Giftpost");
   const image = await pdf.embedPng(png);
   const page = pdf.addPage([PDF_PAGE.width, PDF_PAGE.height]);
   page.drawImage(image, { x: 0, y: 0, width: PDF_PAGE.width, height: PDF_PAGE.height });

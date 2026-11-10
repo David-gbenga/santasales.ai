@@ -27,7 +27,7 @@ export function AdminShell({
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <div className="flex items-center gap-6">
             <Link href="/admin" className="font-display text-xl">
-              Snowpost admin
+              Giftpost admin
             </Link>
             <nav aria-label="Admin">
               <ul className="flex flex-wrap gap-1 text-sm font-medium">

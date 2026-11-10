@@ -1,6 +1,7 @@
 import "server-only";
 import { PDFDocument, StandardFonts, rgb, type PDFFont, type PDFPage } from "pdf-lib";
 import type { LyricsText } from "@/lib/validation";
+import { creditLine, visibleSender } from "@/lib/occasions";
 
 const A4 = { width: 595.28, height: 841.89 } as const;
 const MARGIN = 64;
@@ -9,7 +10,7 @@ const BERRY = rgb(0.698, 0.157, 0.247);
 const FROST = rgb(0.933, 0.953, 0.969);
 const MUTED = rgb(0.28, 0.35, 0.45);
 
-type Credit = { recipientName: string; senderName: string };
+type Credit = { recipientName: string; senderName: string; anonymous?: boolean; occasion?: unknown };
 
 /** One section of the body: "[Verse 1]" label (or none) plus its lines. */
 export function parseLyricsBody(body: string): { label: string | null; lines: string[] }[] {
@@ -70,8 +71,8 @@ function wrap(font: PDFFont, size: number, text: string, maxWidth: number): stri
 export async function renderLyricsPdf(text: LyricsText, credit: Credit): Promise<Buffer> {
   const pdf = await PDFDocument.create();
   pdf.setTitle(text.title);
-  pdf.setAuthor(credit.senderName);
-  pdf.setCreator("Snowpost");
+  pdf.setAuthor(visibleSender(credit) ?? "Giftpost");
+  pdf.setCreator("Giftpost");
   const titleFont = await pdf.embedFont(StandardFonts.TimesRomanBold);
   const bodyFont = await pdf.embedFont(StandardFonts.TimesRoman);
   const labelFont = await pdf.embedFont(StandardFonts.HelveticaBold);
@@ -98,7 +99,7 @@ export async function renderLyricsPdf(text: LyricsText, credit: Credit): Promise
     }
     const subtitle = encodable(
       smallFont,
-      `A Christmas song for ${credit.recipientName}, from ${credit.senderName}`,
+      creditLine("song", credit),
     );
     page.drawText(subtitle, {
       x: MARGIN,
@@ -152,6 +153,6 @@ export async function renderLyricsPdf(text: LyricsText, credit: Credit): Promise
 
 /** Plain-text version for pasting into messages or a phone's notes. */
 export function renderLyricsTxt(text: LyricsText, credit: Credit): Buffer {
-  const content = `${text.title}\nA Christmas song for ${credit.recipientName}, from ${credit.senderName}\n\n${text.body}\n`;
+  const content = `${text.title}\n${creditLine("song", credit)}\n\n${text.body}\n`;
   return Buffer.from(content.replace(/\n/g, "\r\n"), "utf8");
 }

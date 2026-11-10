@@ -22,5 +22,5 @@ export const CARD_TONE_LABELS: Record<
   warm: { label: "Warm", hint: "Kind and cosy" },
   heartfelt: { label: "Heartfelt", hint: "Sincere, a bit emotional" },
   funny: { label: "Funny", hint: "Gentle, playful humour" },
-  traditional: { label: "Traditional", hint: "Classic Christmas wishes" },
+  traditional: { label: "Traditional", hint: "Classic, elegant wishes" },
 };

@@ -5,11 +5,12 @@ import { formatPrice } from "@/lib/format";
 import { LYRIC_LENGTH_LABELS, LYRIC_STYLE_LABELS } from "@/lib/lyrics-options";
 import { MAX_REGENERATIONS, SONG_PRICE_BY_LENGTH } from "@/lib/pricing";
 import { SONG_STYLES, VOCALS } from "@/lib/audio-options";
+import { site } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "Write a personal Christmas song",
+  title: "A personal song for any occasion",
   description:
-    "Tell us who it's for and we'll write and sing an original Christmas song about them. Preview it free before you pay.",
+    "Birthday, anniversary, wedding, Valentine's, Mother's Day, Christmas and more: we write and sing an original song about them. Preview it free before you pay.",
 };
 
 export default function LyricsPage() {
@@ -27,15 +28,17 @@ export default function LyricsPage() {
     <div className="bg-snow text-ink">
       <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 md:py-20">
         <h1 className="text-balance font-display text-5xl leading-tight sm:text-6xl">
-          A Christmas song written about them
+          A song written just for them, for any occasion
         </h1>
         <p className="mt-4 text-lg leading-relaxed text-ink-muted">
-          Tell us who it&rsquo;s for and what to sing about. We write original lyrics they&rsquo;ll
+          Birthdays, anniversaries, weddings, Valentine&rsquo;s, Mother&rsquo;s Day, Christmas and
+          more. Tell us who it&rsquo;s for and what to sing about. We write original lyrics they&rsquo;ll
           recognise themselves in and let you hear a 15-second sung sample, free. Love it? Pay once,
           from {lengthPrices.short}, and we record the full song. You also get {MAX_REGENERATIONS}{" "}
           more rewrites, can edit any line, and download the MP3, a PDF to print and a text file.
         </p>
         <LyricsForm
+          defaultOccasion={site.seasonalOccasion}
           lengthPrices={lengthPrices}
           musicStyles={musicStyles}
           vocals={vocals}

@@ -6,6 +6,8 @@ export type ConciergeMessage = { role: "user" | "assistant"; content: string };
 export type CardCheckoutInput = {
   recipientName: string;
   senderName: string;
+  occasion: string;
+  anonymous?: boolean;
   relationship?: string;
   tone: string;
   details: string;
@@ -13,6 +15,8 @@ export type CardCheckoutInput = {
 export type SongCheckoutInput = {
   recipientName: string;
   senderName: string;
+  occasion: string;
+  anonymous?: boolean;
   relationship?: string;
   style: string;
   length: string;

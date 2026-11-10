@@ -1,12 +1,15 @@
 "use client";
 
 import { useId, useState, type FormEvent } from "react";
+import { AnonymousField, OccasionField } from "@/components/ui/occasion-fields";
 import { OwnWordsField } from "@/components/ui/own-words-field";
 import { track } from "@/lib/analytics";
+import type { Occasion } from "@/lib/occasions";
 
 type Option = { label: string; hint: string };
 
 type LyricsFormProps = {
+  defaultOccasion: Occasion;
   /** Price per length, e.g. { short: "£2.99" }; shown on each length choice. */
   lengthPrices: Record<string, string>;
   musicStyles: Record<string, Option>;
@@ -73,6 +76,7 @@ function ChoiceGroup({
 }
 
 export function LyricsForm({
+  defaultOccasion,
   lengthPrices,
   musicStyles,
   vocals,
@@ -81,6 +85,8 @@ export function LyricsForm({
   lengths,
 }: LyricsFormProps) {
   const [length, setLength] = useState(Object.keys(lengths)[0]);
+  const [occasion, setOccasion] = useState<Occasion>(defaultOccasion);
+  const [anonymous, setAnonymous] = useState(false);
   const pricedLengths = Object.fromEntries(
     Object.entries(lengths).map(([k, o]) => [k, { ...o, label: `${o.label} · ${lengthPrices[k]}` }]),
   );
@@ -105,6 +111,8 @@ export function LyricsForm({
           input: {
             musicStyle: form.get("musicStyle"),
             vocal: form.get("vocal"),
+            occasion,
+            anonymous,
             recipientName: form.get("recipientName"),
             senderName: form.get("senderName"),
             relationship: form.get("relationship"),
@@ -130,6 +138,8 @@ export function LyricsForm({
       className="mt-12 space-y-6"
       aria-describedby={error ? errorId : undefined}
     >
+      <OccasionField value={occasion} onChange={setOccasion} noun="song" />
+
       <div className="grid gap-6 sm:grid-cols-2">
         <label className="block font-medium">
           Who&rsquo;s the song for?
@@ -155,11 +165,13 @@ export function LyricsForm({
         </label>
       </div>
 
+      <AnonymousField checked={anonymous} onChange={setAnonymous} noun="song" />
+
       <OwnWordsField
         name="details"
         label="Describe the song in your own words"
-        hint="What they're like, what they did this year, things only your family would get. Keep it kind: they'll hear it."
-        placeholder="e.g. Grandad finally retired this year, spends every morning on his allotment and still can't work the TV remote…"
+        hint="What they're like, what they're celebrating, things only your family would get. Keep it kind: they'll hear it."
+        placeholder="e.g. Grandad turns 80 this year, spends every morning on his allotment and still can't work the TV remote…"
         ideas={IDEAS}
         max={DETAILS_MAX}
         value={details}

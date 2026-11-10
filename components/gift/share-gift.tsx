@@ -2,11 +2,14 @@
 
 import { useId, useState } from "react";
 import { track } from "@/lib/analytics";
+import { OCCASIONS, giftPhrase, type Occasion } from "@/lib/occasions";
 
 type ShareGiftProps = {
   orderId: string;
   recipientName: string;
   senderName: string;
+  anonymous: boolean;
+  occasion: Occasion;
   noun: "card" | "song";
   initialUrl: string | null;
   initialActive: boolean;
@@ -24,6 +27,8 @@ export function ShareGift({
   orderId,
   recipientName,
   senderName,
+  anonymous,
+  occasion,
   noun,
   initialUrl,
   initialActive,
@@ -36,7 +41,12 @@ export function ShareGift({
   const [error, setError] = useState("");
   const noteId = useId();
 
-  const message = `${recipientName}, I made you a Christmas ${noun}. Open it here: ${url}`;
+  const phrase = giftPhrase(occasion, noun);
+  // Anonymous gifts never say who made them, in the text at least.
+  const intro = anonymous
+    ? `${recipientName}, someone made you ${phrase}.`
+    : `${recipientName}, I made you ${phrase}.`;
+  const message = `${intro} Open it here: ${url}`;
 
   async function update(action: "create" | "revoke") {
     setBusy(true);
@@ -82,8 +92,8 @@ export function ShareGift({
     if (!url) return;
     try {
       await navigator.share({
-        title: `A Christmas ${noun} for ${recipientName}`,
-        text: `${recipientName}, I made you a Christmas ${noun}.`,
+        title: `${phrase.charAt(0).toUpperCase()}${phrase.slice(1)} for ${recipientName}`,
+        text: intro,
         url,
       });
       track("cta_click", { refId: `share:native:${noun}` });
@@ -117,7 +127,7 @@ export function ShareGift({
             value={note}
             maxLength={300}
             onChange={(e) => setNote(e.target.value)}
-            placeholder={`e.g. Merry Christmas! Love, ${senderName}`}
+            placeholder={`e.g. ${OCCASIONS[occasion].greeting}! ${anonymous ? "Guess who?" : `Love, ${senderName}`}`}
             className="mt-2 block w-full rounded-md border border-ink/25 px-4 py-3 focus-visible:border-ink"
           />
           <button
@@ -132,6 +142,13 @@ export function ShareGift({
       ) : (
         <>
           <p className="mt-1 text-ink-muted">Send it however you like:</p>
+          {anonymous && (
+            <p className="mt-2 rounded-md border border-ember/60 bg-snow px-3 py-2 text-sm">
+              Your name isn&rsquo;t on the {noun} or the gift page. But a message from your own
+              phone or email shows it came from you, so for a real surprise ask a friend to send the
+              link.
+            </p>
+          )}
           <p className="mt-3 break-all rounded-md bg-snow px-3 py-2 font-mono text-sm">{url}</p>
           <div className="mt-4 flex flex-wrap gap-2">
             <a
@@ -144,7 +161,7 @@ export function ShareGift({
               WhatsApp
             </a>
             <a
-              href={`mailto:?subject=${encodeURIComponent(`A Christmas ${noun} for you`)}&body=${encodeURIComponent(message)}`}
+              href={`mailto:?subject=${encodeURIComponent(`${phrase.charAt(0).toUpperCase()}${phrase.slice(1)} for you`)}&body=${encodeURIComponent(message)}`}
               onClick={() => track("cta_click", { refId: `share:email:${noun}` })}
               className={button}
             >

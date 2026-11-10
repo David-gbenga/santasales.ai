@@ -6,7 +6,7 @@ import { getActiveGalleryItems, storeHost } from "@/lib/gallery";
 export const metadata: Metadata = {
   title: "Gallery",
   description:
-    "Christmas gifts we'd buy ourselves, from other shops. Each one opens on the shop's own site.",
+    "Gifts we'd buy ourselves, from other shops. Each one opens on the shop's own site.",
 };
 
 export default async function GalleryPage() {

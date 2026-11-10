@@ -4,7 +4,7 @@ Instructions for Claude Code when working in this repository. Read `docs/PRD.md`
 
 ## Project summary
 
-A Christmas-themed website: digital product store (Stripe), clickable store-links gallery, AI Christmas card and sung-song generators (free preview, pay to unlock), admin dashboard with an AI-written sales summary, and a 3D landing page. Target: shippable in 2 days. Favour simple, working solutions over clever ones.
+Giftpost (giftpost.com): digital product store (Stripe), clickable store-links gallery, AI card and sung-song generators for any occasion, with optional anonymous sending (free preview, pay to unlock), admin dashboard with an AI-written sales summary, and a 3D landing page. Target: shippable in 2 days. Favour simple, working solutions over clever ones.
 
 ## Tech stack
 
@@ -103,7 +103,8 @@ Keep `.env.example` in sync with this list. Never ask the user to paste key valu
 
 ### AI prompts
 - Prompts live in `lib/ai/prompts/` as functions returning typed messages; keep them versioned and readable.
-- Card and lyrics prompts: family-friendly, original wording, never reproduce or parody existing songs, poems or lyrics; respect requested tone and length.
+- Card and lyrics prompts: family-friendly, original wording, never reproduce or parody existing songs, poems or lyrics; respect requested occasion, tone and length.
+- Anonymous gifts: never show the sender's name to the recipient (card image, song sheet, PDFs, gift page, share text). Use `visibleSender()` from `lib/occasions.ts` rather than `input.senderName` anywhere the recipient can see it.
 - Return structured output (JSON validated with Zod) where the UI needs fields; retry once on a parse failure, then show a friendly error.
 - Set sensible `max_tokens`; read the model from `ANTHROPIC_MODEL`.
 

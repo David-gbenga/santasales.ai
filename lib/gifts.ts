@@ -3,6 +3,7 @@ import { randomBytes } from "node:crypto";
 import { getAddonsFor } from "@/lib/addons";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { lyricsTextSchema, type LyricsText } from "@/lib/validation";
+import { toOccasion, type Occasion } from "@/lib/occasions";
 
 /** Signed media links on the gift page last an hour; the page itself makes fresh ones each visit. */
 const MEDIA_TTL_SECONDS = 60 * 60;
@@ -91,7 +92,9 @@ export async function getShareFor(
 export type Gift = {
   kind: "card" | "lyrics";
   recipientName: string;
-  senderName: string;
+  /** Null when the buyer sent it anonymously. */
+  senderName: string | null;
+  occasion: Occasion;
   note: string | null;
   cardImageUrl: string | null;
   lyrics: LyricsText | null;
@@ -106,7 +109,7 @@ type ShareRow = {
     id: string;
     kind: "card" | "lyrics";
     locked: boolean;
-    input: { recipientName?: string; senderName?: string } | null;
+    input: { recipientName?: string; senderName?: string; anonymous?: boolean; occasion?: unknown } | null;
     output_text: string | null;
     png_path: string | null;
     orders: { status: string }[];
@@ -162,7 +165,8 @@ export async function loadGift(token: string): Promise<Gift | null> {
   return {
     kind: g.kind,
     recipientName: g.input?.recipientName ?? "you",
-    senderName: g.input?.senderName ?? "Someone special",
+    senderName: g.input?.anonymous ? null : (g.input?.senderName ?? null),
+    occasion: toOccasion(g.input?.occasion),
     note: data.note,
     cardImageUrl,
     lyrics,

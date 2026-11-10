@@ -15,6 +15,8 @@ type StudioProps = {
   initialFreeRerollsLeft: number;
   recipientName: string;
   senderName: string;
+  /** Anonymous cards show no name under the sign-off. */
+  anonymous: boolean;
   design: PreviewDesign & { name: string };
   initialText: CardWords | null;
   initialRewritesLeft: number;
@@ -115,7 +117,7 @@ export function CardStudio(props: StudioProps) {
             <CardPreview
               design={design}
               text={draft}
-              senderName={senderName}
+              senderName={props.anonymous ? null : senderName}
               placeholder={busy === "generate"}
             />
             {!paid && <PreviewWatermark />}
@@ -229,7 +231,9 @@ export function CardStudio(props: StudioProps) {
                 <label htmlFor={ids.signOff} className="block font-medium">
                   Sign-off{" "}
                   <span className="font-normal text-ink-muted">
-                    (your name, {senderName}, goes underneath)
+                    {props.anonymous
+                      ? "(sent anonymously: no name goes underneath)"
+                      : `(your name, ${senderName}, goes underneath)`}
                   </span>
                 </label>
                 <input

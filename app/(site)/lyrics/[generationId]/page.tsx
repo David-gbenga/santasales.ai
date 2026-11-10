@@ -8,6 +8,7 @@ import { formatPrice } from "@/lib/format";
 import { getLyricsGeneration, rewritesLeft } from "@/lib/generations";
 import { FREE_PREVIEW_REROLLS, songPricePence } from "@/lib/pricing";
 import { orderIdSchema } from "@/lib/validation";
+import { creditLine, defaultGreeting } from "@/lib/occasions";
 
 export const metadata: Metadata = {
   title: "Your song",
@@ -71,6 +72,7 @@ async function Studio({
       initialFreeRerollsLeft={Math.max(0, FREE_PREVIEW_REROLLS - generation.freeRerolls)}
       recipientName={generation.input.recipientName}
       senderName={generation.input.senderName}
+      credit={creditLine("song", generation.input)}
       initialText={generation.text}
       initialRewritesLeft={rewritesLeft(generation.regenCount)}
       initialLocked={generation.locked}
@@ -87,7 +89,9 @@ async function Studio({
         kind="lyrics"
         recipientName={generation.input.recipientName}
         senderName={generation.input.senderName}
-        defaultGreeting={`Merry Christmas, ${generation.input.recipientName}! I wrote you a song. Lots of love, ${generation.input.senderName}.`}
+        anonymous={generation.input.anonymous}
+        occasion={generation.input.occasion}
+        defaultGreeting={defaultGreeting("song", generation.input)}
       />
     </>
   ) : (

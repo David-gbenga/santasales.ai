@@ -5,6 +5,7 @@ import {
   SONG_STYLE_KEYS,
   VOCAL_KEYS,
 } from "@/lib/audio-options";
+import { DEFAULT_OCCASION, OCCASION_KEYS } from "@/lib/occasions";
 
 /** Trims, collapses whitespace and strips control characters from free text. */
 const cleanText = (max: number) =>
@@ -49,6 +50,10 @@ export const cardInputSchema = z
   .object({
     recipientName: requiredText(40, "Their name"),
     senderName: requiredText(40, "Your name"),
+    // Older orders have no occasion: they were all Christmas.
+    occasion: z.enum(OCCASION_KEYS).default(DEFAULT_OCCASION),
+    // Hide the sender from the recipient (card, song sheet, gift page).
+    anonymous: z.boolean().default(false),
     // Optional: people can say who the recipient is in their own words instead.
     relationship: z
       .union([z.enum(RELATIONSHIPS), z.literal("")])
@@ -81,6 +86,10 @@ export const lyricsInputSchema = z
   .object({
     recipientName: requiredText(40, "Their name"),
     senderName: requiredText(40, "Your name"),
+    // Older orders have no occasion: they were all Christmas.
+    occasion: z.enum(OCCASION_KEYS).default(DEFAULT_OCCASION),
+    // Hide the sender from the recipient (card, song sheet, gift page).
+    anonymous: z.boolean().default(false),
     relationship: z
       .union([z.enum(RELATIONSHIPS), z.literal("")])
       .optional()

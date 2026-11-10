@@ -1,6 +1,7 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { z } from "zod";
+import { OCCASION_KEYS, type Occasion } from "@/lib/occasions";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createPublicClient } from "@/lib/supabase/server";
 
@@ -29,9 +30,24 @@ export type CardDesign = {
   name: string;
   backgroundPath: string;
   layout: CardLayout;
+  /** Occasions this design suits; empty means every occasion. */
+  occasions: Occasion[];
 };
 
-type CardDesignRow = { slug: string; name: string; background_path: string; layout: unknown };
+type CardDesignRow = {
+  slug: string;
+  name: string;
+  background_path: string;
+  layout: unknown;
+  occasions: string[] | null;
+};
+
+const isOccasion = (o: string): o is Occasion => (OCCASION_KEYS as readonly string[]).includes(o);
+
+/** Whether a design can be used for an occasion. */
+export function designSuits(design: { occasions: Occasion[] }, occasion: Occasion): boolean {
+  return design.occasions.length === 0 || design.occasions.includes(occasion);
+}
 
 function toDesign(row: CardDesignRow): CardDesign | null {
   const layout = cardLayoutSchema.safeParse(row.layout);
@@ -44,6 +60,7 @@ function toDesign(row: CardDesignRow): CardDesign | null {
     name: row.name,
     backgroundPath: row.background_path,
     layout: layout.data,
+    occasions: (row.occasions ?? []).filter(isOccasion),
   };
 }
 
@@ -55,7 +72,7 @@ export async function getActiveCardDesigns(): Promise<CardDesign[]> {
 
   const { data, error } = await createPublicClient()
     .from("card_designs")
-    .select("slug, name, background_path, layout")
+    .select("slug, name, background_path, layout, occasions")
     .eq("active", true)
     .order("sort", { ascending: true });
   if (error) throw new Error(`Loading card designs failed: ${error.message}`);
@@ -73,7 +90,7 @@ export async function getCardDesign(
 ): Promise<CardDesign | null> {
   let query = (includeInactive ? createAdminClient() : createPublicClient())
     .from("card_designs")
-    .select("slug, name, background_path, layout")
+    .select("slug, name, background_path, layout, occasions")
     .eq("slug", slug);
   if (!includeInactive) query = query.eq("active", true);
   const { data, error } = await query.maybeSingle<CardDesignRow>();

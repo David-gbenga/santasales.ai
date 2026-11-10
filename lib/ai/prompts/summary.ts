@@ -12,9 +12,9 @@ export const summaryOutputSchema = z.object({
 });
 export type SummaryOutput = z.infer<typeof summaryOutputSchema>;
 
-const SYSTEM = `You write a short weekly performance note for the owner of a small Christmas gift website. They read it in two minutes and want to know what's selling and what to do more of.
+const SYSTEM = `You write a short weekly performance note for the owner of Giftpost, a small gift website for every occasion. They read it in two minutes and want to know what's selling and what to do more of.
 
-The site sells printable downloads, personal AI-written Christmas cards and song lyrics, add-ons (sung versions of songs and voice greetings), and links to other shops in a gallery (some are affiliate links). It also has a gift-finder chat.
+The site sells printable downloads, personal AI-written cards and sung songs for any occasion (previewed free, paid to unlock), voice greeting add-ons, and links to other shops in a gallery (some are affiliate links). It also has a gift-finder chat.
 
 Rules:
 - Use only the numbers provided. Never invent figures, trends or causes you can't see in them. If a number is zero or too small to read anything into, say so plainly.

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getAddonsFor } from "@/lib/addons";
 import { siteUrl } from "@/lib/env";
+import { OCCASIONS, toOccasion } from "@/lib/occasions";
 import { createPendingOrder } from "@/lib/orders";
 import {
   CARD_PRICE_PENCE,
@@ -86,7 +87,7 @@ const SONG_LENGTH_NOTE: Record<SongLength, string> = {
  */
 async function songSession(
   generationId: string,
-  input: { recipientName: string; length: SongLength },
+  input: { recipientName: string; length: SongLength; occasion?: unknown },
   origin: string,
   cancelPath: string,
 ): Promise<CheckoutResult> {
@@ -100,7 +101,7 @@ async function songSession(
           currency: CURRENCY,
           unit_amount: price,
           product_data: {
-            name: `Personal Christmas song for ${input.recipientName}`,
+            name: `Personal ${OCCASIONS[toOccasion(input.occasion)].adjective} song for ${input.recipientName}`.replace("  ", " "),
             description: `Original lyrics, recorded as a full sung song (${SONG_LENGTH_NOTE[input.length]}). 3 rewrites included. MP3, PDF and text downloads.`,
           },
         },
@@ -127,7 +128,7 @@ type PreviewRow = {
   kind: string;
   locked: boolean;
   output_text: string | null;
-  input: { recipientName?: string; length?: SongLength } | null;
+  input: { recipientName?: string; length?: SongLength; occasion?: unknown } | null;
   orders: { status: string }[];
 };
 
@@ -161,7 +162,12 @@ async function checkoutPreview(generationId: string, origin: string): Promise<Ch
   const recipientName = g.input?.recipientName ?? "them";
   const studioPath = `/${g.kind === "card" ? "cards" : "lyrics"}/${g.id}`;
   if (g.kind === "lyrics") {
-    return songSession(g.id, { recipientName, length: g.input?.length ?? "standard" }, origin, studioPath);
+    return songSession(
+      g.id,
+      { recipientName, length: g.input?.length ?? "standard", occasion: g.input?.occasion },
+      origin,
+      studioPath,
+    );
   }
 
   const session = await getStripe().checkout.sessions.create({
@@ -173,7 +179,7 @@ async function checkoutPreview(generationId: string, origin: string): Promise<Ch
           currency: CURRENCY,
           unit_amount: CARD_PRICE_PENCE,
           product_data: {
-            name: `Personal Christmas card for ${recipientName}`,
+            name: `Personal ${OCCASIONS[toOccasion(g.input?.occasion)].adjective} card for ${recipientName}`.replace("  ", " "),
             description: "The card you previewed, with 3 more rewrites, editing, and print-ready PNG and PDF downloads.",
           },
         },

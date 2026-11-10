@@ -28,7 +28,8 @@ export function CardPreview({
 }: {
   design: PreviewDesign;
   text: CardWords | null;
-  senderName: string;
+  /** Null for an anonymous card. */
+  senderName: string | null;
   placeholder?: boolean;
 }) {
   const { layout } = design;
@@ -95,7 +96,7 @@ export function CardPreview({
               }}
             >
               <p>{text.signOff}</p>
-              <p style={{ color: accent }}>{senderName}</p>
+              {senderName && <p style={{ color: accent }}>{senderName}</p>}
             </div>
           </>
         ) : (

@@ -1,13 +1,14 @@
 import "server-only";
 import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
-import { getActiveCardDesigns } from "@/lib/card-designs";
+import { designSuits, getActiveCardDesigns } from "@/lib/card-designs";
 import type { ConciergeWidget } from "@/lib/concierge/types";
 import { formatPrice } from "@/lib/format";
 import { getActiveGalleryItems, storeHost } from "@/lib/gallery";
 import { LYRIC_LENGTH_LABELS, LYRIC_STYLE_LABELS } from "@/lib/lyrics-options";
 import { mediaUrl } from "@/lib/media";
 import { SONG_STYLES, SONG_STYLE_KEYS, VOCAL_KEYS } from "@/lib/audio-options";
+import { OCCASION_KEYS } from "@/lib/occasions";
 import { CARD_PRICE_PENCE, SONG_PRICE_BY_LENGTH, songPricePence } from "@/lib/pricing";
 import { getActiveProducts } from "@/lib/products";
 import {
@@ -40,6 +41,11 @@ const personFields = {
     .max(40)
     .describe("The recipient's name as it should appear, e.g. 'Grandad Ken'"),
   senderName: z.string().max(40).describe("The buyer's own name. Ask if you don't know it."),
+  occasion: z.enum(OCCASION_KEYS).describe("What the card or song is for"),
+  anonymous: z
+    .boolean()
+    .optional()
+    .describe("True to keep the buyer's name off the card or song and its gift page"),
   relationship: z
     .enum(RELATIONSHIPS)
     .optional()
@@ -114,8 +120,8 @@ export function createConciergeTools(widgets: ConciergeWidget[], shown: string[]
           note: "Price is on the other shop's site.",
         })),
         ourPersonalGifts: {
-          card: `Personal Christmas card, ${formatPrice(CARD_PRICE_PENCE)}`,
-          song: `Personal Christmas song, written and sung: short ${formatPrice(SONG_PRICE_BY_LENGTH.short)}, standard ${formatPrice(SONG_PRICE_BY_LENGTH.standard)}, long ${formatPrice(SONG_PRICE_BY_LENGTH.long)}`,
+          card: `Personal card for any occasion, ${formatPrice(CARD_PRICE_PENCE)}`,
+          song: `Personal song for any occasion, written and sung: short ${formatPrice(SONG_PRICE_BY_LENGTH.short)}, standard ${formatPrice(SONG_PRICE_BY_LENGTH.standard)}, long ${formatPrice(SONG_PRICE_BY_LENGTH.long)}`,
         },
       });
     },
@@ -167,18 +173,19 @@ export function createConciergeTools(widgets: ConciergeWidget[], shown: string[]
 
   const listCardDesigns = betaZodTool({
     name: "list_card_designs",
-    description: "List the personal card designs, to pick one for offer_card.",
+    description:
+      "List the personal card designs with the occasions each suits (an empty list means any occasion), to pick one for offer_card.",
     inputSchema: z.object({}),
     async run() {
       const designs = await getActiveCardDesigns();
-      return JSON.stringify(designs.map((d) => ({ slug: d.slug, name: d.name })));
+      return JSON.stringify(designs.map((d) => ({ slug: d.slug, name: d.name, occasions: d.occasions })));
     },
   });
 
   const offerCard = betaZodTool({
     name: "offer_card",
     description:
-      "Show a personal Christmas card offer with a one-line teaser and a free-preview button. Needs the recipient's and buyer's names.",
+      "Show a personal card offer (any occasion) with a one-line teaser and a free-preview button. Needs the recipient's and buyer's names.",
     inputSchema: z.object({
       designSlug: z.string().max(64).describe("A slug from list_card_designs"),
       tone: z.enum(CARD_TONES),
@@ -186,9 +193,14 @@ export function createConciergeTools(widgets: ConciergeWidget[], shown: string[]
     }),
     async run({ designSlug, teaser, ...rest }) {
       const designs = await getActiveCardDesigns();
-      const design = designs.find((d) => d.slug === designSlug);
+      const design = designs.find(
+        (d) => d.slug === designSlug && designSuits(d, rest.occasion),
+      );
       if (!design)
-        return `Unknown design. Choose one of: ${designs.map((d) => d.slug).join(", ")}.`;
+        return `That design doesn’t suit this occasion or doesn’t exist. Choose one of: ${designs
+          .filter((d) => designSuits(d, rest.occasion))
+          .map((d) => d.slug)
+          .join(", ")}.`;
       const teaserProblem = checkTeaser(teaser);
       if (teaserProblem) return `Not shown: ${teaserProblem}. Try again.`;
       const input = cardInputSchema.safeParse({ ...rest, relationship: rest.relationship ?? "" });
@@ -213,7 +225,7 @@ export function createConciergeTools(widgets: ConciergeWidget[], shown: string[]
   const offerSong = betaZodTool({
     name: "offer_song",
     description:
-      "Show a personal Christmas song offer (original lyrics, recorded as a sung song) with a one-line teaser and a free-preview button. Needs the recipient's and buyer's names.",
+      "Show a personal song offer (any occasion; original lyrics, recorded as a sung song) with a one-line teaser and a free-preview button. Needs the recipient's and buyer's names.",
     inputSchema: z.object({
       style: z.enum(LYRIC_STYLES),
       length: z.enum(LYRIC_LENGTHS),

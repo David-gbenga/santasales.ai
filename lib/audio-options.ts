@@ -7,22 +7,22 @@ export const SONG_STYLES = {
   cosy: {
     label: "Cosy acoustic",
     hint: "Fireside guitar, gentle and warm",
-    styles: ["cosy acoustic christmas", "fingerpicked guitar", "warm", "intimate"],
+    styles: ["cosy acoustic", "fingerpicked guitar", "warm", "intimate"],
   },
   pop: {
     label: "Upbeat pop",
-    hint: "Bright, bouncy, sleigh bells",
-    styles: ["upbeat christmas pop", "sleigh bells", "bright", "catchy"],
+    hint: "Bright, bouncy and catchy",
+    styles: ["upbeat pop", "bright", "catchy", "handclaps"],
   },
   swing: {
     label: "Big band swing",
     hint: "Brass, swing, crooner energy",
-    styles: ["festive big band swing", "brass section", "walking bass", "joyful"],
+    styles: ["big band swing", "brass section", "walking bass", "joyful"],
   },
   ballad: {
     label: "Piano ballad",
     hint: "Soft piano, heartfelt",
-    styles: ["gentle christmas piano ballad", "soft strings", "heartfelt", "emotional"],
+    styles: ["gentle piano ballad", "soft strings", "heartfelt", "emotional"],
   },
 } as const;
 export type SongStyle = keyof typeof SONG_STYLES;

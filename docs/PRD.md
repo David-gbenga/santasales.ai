@@ -1,4 +1,6 @@
-# PRD — Christmas Digital Store
+# PRD — Giftpost (giftpost.com)
+
+> **Renamed 2026-11-11:** the working name Snowpost is now **Giftpost**, on **giftpost.com**, and cards and songs are no longer Christmas-only (F12). Sections below that say "Christmas" describe the launch season.
 
 **Status:** Draft v1 · **Owner:** [Your name] · **Target build time:** 2 focused days
 
@@ -162,6 +164,12 @@ A chat on the landing page that asks who the gift is for, their budget and style
 Terms (including AI-generated content terms placeholder), Privacy, Refunds (digital goods: customer consent to immediate supply / loss of the 14-day cancellation right under UK consumer law — checkbox or wording at checkout), Affiliate disclosure, Contact.
 
 ---
+
+### F12. Any occasion and anonymous gifts — P0 (added 2026-11-11)
+- Card and song forms start with "What's it for?": Christmas, birthday, anniversary, wedding, Valentine's Day, Mother's Day, Father's Day, congratulations, graduation, new baby, thank you, get well soon, retirement, just because (`lib/occasions.ts`). The form opens on `site.seasonalOccasion` (Christmas for now).
+- The occasion is stored in `generations.input.occasion` (older orders count as Christmas) and drives the Claude prompts (card-v4, lyrics-v3), the music style sent to ElevenLabs, Stripe item names, gift-page wording and default voice-greeting text.
+- Card designs list the occasions they suit in `card_designs.occasions` (empty = every occasion). The form only shows suitable designs, and `/api/preview` refuses a mismatch. The four launch designs are Christmas-only; added Classic gold (any), Confetti pop, Sweet hearts and Garden bloom.
+- **Send anonymously** (`generations.input.anonymous`): the sender's name is kept off the card image, the song sheet, the PDFs and the gift page, and Claude is told not to hint at who sent it. The buyer's name is still collected for their order. Sharing texts say "someone made you…", and the share panel warns that sending from your own phone or email reveals you.
 
 ## 5. Out of scope (later phases)
 

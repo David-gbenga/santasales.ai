@@ -32,7 +32,7 @@ async function produceAudio(addon: Addon): Promise<Buffer> {
   if (addon.kind === "voice_greeting") return speak(addon.input.voiceId, addon.input.text);
   const parent = await getLyricsGeneration(addon.parentId);
   if (!parent?.text || !parent.locked) throw new Error(`Lyrics ${addon.parentId} not finished`);
-  return composeSong(parent.text, addon.input.style, addon.input.vocal);
+  return composeSong(parent.text, addon.input.style, addon.input.vocal, parent.input.occasion);
 }
 
 /**

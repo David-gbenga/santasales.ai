@@ -4,7 +4,7 @@ import { getActiveProducts } from "@/lib/products";
 
 export const metadata: Metadata = {
   title: "Shop",
-  description: "Christmas printables and wallpapers to download straight after you pay.",
+  description: "Printables and wallpapers to download straight after you pay.",
 };
 
 export default async function ShopPage() {

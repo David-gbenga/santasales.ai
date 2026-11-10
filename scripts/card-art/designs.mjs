@@ -59,6 +59,7 @@ function star(cx, cy, r, color, points = 5) {
 
 const snowyNight = {
   slug: "snowy-night",
+  occasions: ["christmas"],
   name: "Snowy night",
   layout: {
     text: { x: 190, y: 480, width: 1120, height: 820 },
@@ -94,6 +95,7 @@ const snowyNight = {
 
 const hollyWreath = {
   slug: "holly-sprig",
+  occasions: ["christmas"],
   name: "Holly sprig",
   layout: {
     text: { x: 230, y: 470, width: 1040, height: 1000 },
@@ -121,6 +123,7 @@ const hollyWreath = {
 
 const goldenBaubles = {
   slug: "golden-baubles",
+  occasions: ["christmas"],
   name: "Golden baubles",
   layout: {
     text: { x: 210, y: 900, width: 1080, height: 980 },
@@ -173,6 +176,7 @@ const goldenBaubles = {
 
 const paperVillage = {
   slug: "paper-village",
+  occasions: ["christmas"],
   name: "Paper village",
   layout: {
     text: { x: 200, y: 250, width: 1100, height: 960 },
@@ -216,5 +220,142 @@ const paperVillage = {
   })(),
 };
 
-export const designs = [snowyNight, hollyWreath, goldenBaubles, paperVillage];
+
+// ---------------------------------------------------------------------------
+// Designs for other occasions (2026-11-11). `occasions` keys match
+// lib/occasions.ts; an empty list means the design suits every occasion.
+
+/** Hearts, confetti and flowers are placed by the same seeded PRNG as the snow. */
+function heart(cx, cy, s, color, rot = 0, opacity = 1) {
+  return `<path transform="translate(${cx.toFixed(1)} ${cy.toFixed(1)}) rotate(${rot.toFixed(1)}) scale(${s.toFixed(2)})" d="M0 30 C -40 0 -45 -30 -22 -40 C -8 -46 0 -36 0 -28 C 0 -36 8 -46 22 -40 C 45 -30 40 0 0 30 Z" fill="${color}" opacity="${opacity.toFixed(2)}"/>`;
+}
+
+function confetti(seed, count, colors, area) {
+  const r = rand(seed);
+  const [x0, y0, x1, y1] = area;
+  let out = "";
+  for (let i = 0; i < count; i++) {
+    const x = x0 + r() * (x1 - x0);
+    const y = y0 + r() * (y1 - y0);
+    const c = colors[Math.floor(r() * colors.length)];
+    const rot = r() * 180;
+    if (r() < 0.55) {
+      const w = 14 + r() * 20;
+      out += `<rect x="${(x - w / 2).toFixed(1)}" y="${(y - 6).toFixed(1)}" width="${w.toFixed(1)}" height="12" rx="3" fill="${c}" transform="rotate(${rot.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})"/>`;
+    } else if (r() < 0.6) {
+      out += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(6 + r() * 8).toFixed(1)}" fill="${c}"/>`;
+    } else {
+      out += `<path d="M${(x - 14).toFixed(1)} ${y.toFixed(1)} q 7 -14 14 0 t 14 0" fill="none" stroke="${c}" stroke-width="6" stroke-linecap="round" transform="rotate(${rot.toFixed(1)} ${x.toFixed(1)} ${y.toFixed(1)})"/>`;
+    }
+  }
+  return out;
+}
+
+function flower(cx, cy, r, petal, centre) {
+  let out = "";
+  for (let i = 0; i < 6; i++) {
+    const a = (Math.PI * 2 * i) / 6;
+    out += `<ellipse cx="${(cx + Math.cos(a) * r * 0.9).toFixed(1)}" cy="${(cy + Math.sin(a) * r * 0.9).toFixed(1)}" rx="${(r * 0.7).toFixed(1)}" ry="${(r * 0.45).toFixed(1)}" fill="${petal}" transform="rotate(${((a * 180) / Math.PI).toFixed(1)} ${(cx + Math.cos(a) * r * 0.9).toFixed(1)} ${(cy + Math.sin(a) * r * 0.9).toFixed(1)})"/>`;
+  }
+  return `${out}<circle cx="${cx}" cy="${cy}" r="${(r * 0.45).toFixed(1)}" fill="${centre}"/>`;
+}
+
+function sprigLeaf(x, y, rot, s, fill) {
+  return `<path transform="translate(${x} ${y}) rotate(${rot}) scale(${s})" d="M0 0 C 40 -30 90 -30 130 0 C 90 30 40 30 0 0 Z" fill="${fill}"/>`;
+}
+
+const confettiPop = {
+  slug: "confetti-pop",
+  name: "Confetti pop",
+  occasions: ["birthday", "congratulations", "graduation", "new_baby", "retirement", "fathers_day", "just_because"],
+  layout: {
+    text: { x: 200, y: 560, width: 1100, height: 980 },
+    align: "center",
+    font: "sans",
+    color: "#13233f",
+    accentColor: "#c8324a",
+  },
+  svg: `
+  <rect width="${W}" height="${H}" fill="#fff8ee"/>
+  ${confetti(101, 120, ["#c8324a", "#f2a541", "#2f6b5a", "#2a78d6", "#8a5cc7"], [40, 40, W - 40, 470])}
+  ${confetti(202, 120, ["#c8324a", "#f2a541", "#2f6b5a", "#2a78d6", "#8a5cc7"], [40, 1640, W - 40, H - 40])}
+  ${confetti(303, 14, ["#f2a541", "#2a78d6"], [60, 560, 170, 1540])}
+  ${confetti(404, 14, ["#c8324a", "#2f6b5a"], [1330, 560, 1440, 1540])}`,
+};
+
+const sweetHearts = {
+  slug: "sweet-hearts",
+  name: "Sweet hearts",
+  occasions: ["valentines", "anniversary", "wedding", "mothers_day"],
+  layout: {
+    text: { x: 220, y: 600, width: 1060, height: 940 },
+    align: "center",
+    font: "serif",
+    color: "#5a1526",
+    accentColor: "#c8324a",
+  },
+  svg: (() => {
+    const r = rand(555);
+    let hearts = "";
+    for (let i = 0; i < 26; i++) {
+      const top = i % 2 === 0;
+      const x = 80 + r() * (W - 160);
+      const y = top ? 80 + r() * 400 : 1650 + r() * 370;
+      const colors = ["#c8324a", "#e0607a", "#f19cae", "#b2283f"];
+      hearts += heart(x, y, 0.8 + r() * 1.6, colors[Math.floor(r() * colors.length)], -25 + r() * 50, 0.55 + r() * 0.45);
+    }
+    return `
+  <rect width="${W}" height="${H}" fill="#fcecef"/>
+  <rect x="80" y="80" width="${W - 160}" height="${H - 160}" rx="40" fill="none" stroke="#e0a3b0" stroke-width="4" stroke-dasharray="2 18" stroke-linecap="round"/>
+  ${hearts}
+  ${heart(W / 2, 470, 2.2, "#c8324a")}`;
+  })(),
+};
+
+const gardenBloom = {
+  slug: "garden-bloom",
+  name: "Garden bloom",
+  occasions: ["mothers_day", "thank_you", "get_well", "wedding", "anniversary", "new_baby", "retirement", "just_because"],
+  layout: {
+    text: { x: 230, y: 520, width: 1040, height: 1000 },
+    align: "center",
+    font: "serif",
+    color: "#1f3b30",
+    accentColor: "#b8566b",
+  },
+  svg: `
+  <rect width="${W}" height="${H}" fill="#f1f5ee"/>
+  ${sprigLeaf(60, 330, -40, 1.6, "#7fa58c")}${sprigLeaf(250, 110, 20, 1.4, "#5f8a70")}${sprigLeaf(90, 520, 10, 1.2, "#9cbca6")}
+  ${flower(200, 260, 70, "#f3b6c2", "#f2c46b")}${flower(420, 150, 50, "#ffffff", "#f2a541")}${flower(110, 470, 42, "#e48aa0", "#f2c46b")}
+  ${sprigLeaf(1440, 1770, 140, 1.6, "#7fa58c")}${sprigLeaf(1250, 1990, 200, 1.4, "#5f8a70")}${sprigLeaf(1410, 1580, 170, 1.2, "#9cbca6")}
+  ${flower(1300, 1840, 70, "#f3b6c2", "#f2c46b")}${flower(1080, 1950, 50, "#ffffff", "#f2a541")}${flower(1390, 1630, 42, "#e48aa0", "#f2c46b")}`,
+};
+
+const classicGold = {
+  slug: "classic-gold",
+  name: "Classic gold",
+  occasions: [],
+  layout: {
+    text: { x: 230, y: 480, width: 1040, height: 1140 },
+    align: "center",
+    font: "serif",
+    color: "#f8efdc",
+    accentColor: "#e9c46a",
+  },
+  svg: `
+  <defs>
+    <linearGradient id="navy" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#13233f"/>
+      <stop offset="1" stop-color="#1f3a63"/>
+    </linearGradient>
+  </defs>
+  <rect width="${W}" height="${H}" fill="url(#navy)"/>
+  <rect x="90" y="90" width="${W - 180}" height="${H - 180}" fill="none" stroke="#e9c46a" stroke-width="8"/>
+  <rect x="125" y="125" width="${W - 250}" height="${H - 250}" fill="none" stroke="#e9c46a" stroke-width="2" opacity="0.7"/>
+  ${star(W / 2, 300, 46, "#e9c46a", 4)}${star(W / 2 - 110, 320, 18, "#e9c46a", 4)}${star(W / 2 + 110, 320, 18, "#e9c46a", 4)}
+  <path d="M${W / 2 - 260} 1790 H${W / 2 - 40} M${W / 2 + 40} 1790 H${W / 2 + 260}" stroke="#e9c46a" stroke-width="3"/>
+  ${star(W / 2, 1790, 20, "#e9c46a", 4)}`,
+};
+
+export const designs = [snowyNight, hollyWreath, goldenBaubles, paperVillage, classicGold, confettiPop, sweetHearts, gardenBloom];
 export const SIZE = { width: W, height: H };

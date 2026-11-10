@@ -13,14 +13,14 @@ type ChatItem =
   | { role: "user"; content: string }
   | { role: "assistant"; content: string; widgets: ConciergeWidget[]; note: string };
 
-const STORAGE_KEY = "snowpost-concierge-v1";
+const STORAGE_KEY = "giftpost-concierge-v1";
 const STARTERS = [
   "A gift for my mum, under £10",
   "Something funny for my brother",
   "Help me write a card for my grandad",
 ];
 const GREETING =
-  "Hi! I can help you find a Christmas gift. Who are you shopping for, and roughly what would you like to spend?";
+  "Hi! I can help you find a gift for any occasion. Who are you shopping for, and roughly what would you like to spend?";
 
 function loadChat(): ChatItem[] {
   try {

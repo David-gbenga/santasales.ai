@@ -54,7 +54,7 @@ async function fileForOrder(order: OrderWithFiles, format: Format): Promise<File
   if (order.kind === "lyrics" && format === "mp3") {
     const path = order.generation ? await songAudioFor(order.generation.id) : null;
     if (!path) return "Your sung song isn't recorded yet. Go back to the song page; it records after you save.";
-    return { bucket: "generated", path, filename: "christmas-song.mp3" };
+    return { bucket: "generated", path, filename: "giftpost-song.mp3" };
   }
   if (order.kind === "song_audio" || order.kind === "voice_greeting") {
     let path: string | null = null;
@@ -67,7 +67,7 @@ async function fileForOrder(order: OrderWithFiles, format: Format): Promise<File
     }
     if (!path)
       return "The recording isn't ready yet. Go back to your order page; it updates automatically.";
-    const name = order.kind === "song_audio" ? "christmas-song" : "voice-greeting";
+    const name = order.kind === "song_audio" ? "giftpost-song" : "giftpost-voice-greeting";
     return { bucket: "generated", path, filename: `${name}.mp3` };
   }
   if (format === "mp3") return "That file type isn't available for this order.";
@@ -79,7 +79,7 @@ async function fileForOrder(order: OrderWithFiles, format: Format): Promise<File
     if (format === "png") return "Songs download as PDF or TXT.";
     // The TXT is stored next to the PDF (see app/api/generate/lyrics/route.ts).
     const path = format === "txt" ? pdfPath.replace(/\.pdf$/, ".txt") : pdfPath;
-    return { bucket: "generated", path, filename: `christmas-song.${format}` };
+    return { bucket: "generated", path, filename: `giftpost-song.${format}` };
   }
   if (format === "txt") return "That file type isn't available for this order.";
   if (order.kind === "product") {
@@ -96,7 +96,7 @@ async function fileForOrder(order: OrderWithFiles, format: Format): Promise<File
     if (!order.generation?.locked || !path) {
       return "Your card isn't finished yet. Go back to the card page and press Create my card.";
     }
-    return { bucket: "generated", path, filename: `christmas-card.${format}` };
+    return { bucket: "generated", path, filename: `giftpost-card.${format}` };
   }
   return "This order has no file to download yet.";
 }

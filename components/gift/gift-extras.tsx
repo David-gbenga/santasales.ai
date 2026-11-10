@@ -5,6 +5,7 @@ import { siteUrl } from "@/lib/env";
 import { formatPrice } from "@/lib/format";
 import { getShareFor } from "@/lib/gifts";
 import { VOICE_GREETING_PRICE_PENCE } from "@/lib/pricing";
+import type { Occasion } from "@/lib/occasions";
 
 function toState(addon: Addon | undefined): AddonState {
   if (!addon || addon.order?.status === "refunded") return null;
@@ -42,6 +43,8 @@ export async function GiftExtras({
   recipientName,
   senderName,
   defaultGreeting,
+  anonymous,
+  occasion,
 }: {
   generationId: string;
   orderId: string;
@@ -49,6 +52,8 @@ export async function GiftExtras({
   recipientName: string;
   senderName: string;
   defaultGreeting: string;
+  anonymous: boolean;
+  occasion: Occasion;
 }) {
   const [addons, share] = await Promise.all([getAddonsFor(generationId), getShareFor(generationId)]);
 
@@ -64,6 +69,8 @@ export async function GiftExtras({
           orderId={orderId}
           recipientName={recipientName}
           senderName={senderName}
+          anonymous={anonymous}
+          occasion={occasion}
           noun={kind === "card" ? "card" : "song"}
           initialUrl={share ? `${siteUrl()}/gift/${share.token}` : null}
           initialActive={share?.active ?? false}

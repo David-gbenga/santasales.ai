@@ -25,6 +25,8 @@ type StudioProps = {
   vocal: Vocal;
   recipientName: string;
   senderName: string;
+  /** "A birthday song for Gran, from Mia" (no sender when anonymous). */
+  credit: string;
   initialText: LyricsWords | null;
   initialRewritesLeft: number;
   initialLocked: boolean;
@@ -61,13 +63,11 @@ function sections(body: string) {
 
 function SongSheet({
   text,
-  recipientName,
-  senderName,
+  credit,
   preview,
 }: {
   text: LyricsWords;
-  recipientName: string;
-  senderName: string;
+  credit: string;
   preview: boolean;
 }) {
   return (
@@ -80,7 +80,7 @@ function SongSheet({
           {text.title}
         </h2>
         <p className="mt-2 text-sm text-frost-muted">
-          A Christmas song for {recipientName}, from {senderName}
+          {credit}
         </p>
       </header>
       <div className="space-y-6 px-6 py-7 sm:px-8">
@@ -99,7 +99,7 @@ function SongSheet({
 }
 
 export function LyricsStudio(props: StudioProps) {
-  const { generationId, orderId, recipientName, senderName } = props;
+  const { generationId, orderId, recipientName } = props;
   const [saved, setSaved] = useState<LyricsWords | null>(props.initialText);
   const [draft, setDraft] = useState<LyricsWords | null>(props.initialText);
   const [editing, setEditing] = useState(false);
@@ -162,12 +162,7 @@ export function LyricsStudio(props: StudioProps) {
     <div className="grid gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-14">
       <div>
         {draft ? (
-          <SongSheet
-            text={draft}
-            recipientName={recipientName}
-            senderName={senderName}
-            preview={!paid}
-          />
+          <SongSheet text={draft} credit={props.credit} preview={!paid} />
         ) : (
           <div
             role="img"

@@ -1,16 +1,18 @@
 import { formatPrice } from "@/lib/format";
+import type { Occasion } from "@/lib/occasions";
 import { CARD_PRICE_PENCE, PREVIEW_LIMITS, SONG_PRICE_BY_LENGTH } from "@/lib/pricing";
 
-/**
- * Brand and landing-page copy. Placeholder values — replace with the real
- * brand name, headline and prices when they're decided (PRD §9, open questions).
- */
+/** Brand and landing-page copy. Name and domain decided 2026-11-11. */
 export const site = {
-  name: "Snowpost",
+  name: "Giftpost",
+  /** Production domain. The live URL itself comes from NEXT_PUBLIC_SITE_URL. */
+  domain: "giftpost.com",
+  /** Occasion the card and song forms start on. Change with the season. */
+  seasonalOccasion: "christmas" as Occasion,
   headline: "Intentional words and songs for your loved ones.",
   tagline: "It takes a little to be intentional. It costs less to be kind.",
   description:
-    "Personal Christmas cards and sung songs, written for the person you're giving them to. Preview free, pay only if you love it.",
+    "Personal cards and sung songs for birthdays, anniversaries, weddings, Christmas and every occasion, written for the person you're giving them to. Preview free, pay only if you love it.",
   // Static so the page can be fully prerendered (no request-time Date).
   copyrightYear: 2026,
 } as const;
@@ -68,6 +70,14 @@ export const faqs = [
   {
     q: "How much does a song cost?",
     a: `From ${displayPrices.song} to ${displayPrices.songMax}, depending on length. That one price covers the lyrics and the full sung recording.`,
+  },
+  {
+    q: "Which occasions can I make a card or song for?",
+    a: "Christmas, birthdays, anniversaries, weddings, Valentine’s Day, Mother’s and Father’s Day, congratulations, graduations, new babies, thank-yous, get well soon, retirements, or just because.",
+  },
+  {
+    q: "Can I send a gift anonymously?",
+    a: "Yes. Tick “Send anonymously” and your name won’t appear on the card, the song or the gift page. If you send the gift link from your own phone or email, they’ll see it came from you, so ask a friend to pass it on if it’s a real secret.",
   },
   {
     q: "Are the cards and songs original?",

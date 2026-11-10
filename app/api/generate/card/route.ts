@@ -4,6 +4,7 @@ import { getCardDesign } from "@/lib/card-designs";
 import { cardPdfFromPng, renderCardPng } from "@/lib/card-render";
 import { createGenerationRoute } from "@/lib/generation-route";
 import { getCardGeneration, uploadGenerated, type CardGeneration } from "@/lib/generations";
+import { creditLine, visibleSender } from "@/lib/occasions";
 import {
   generateCardRequestSchema,
   type CardInput,
@@ -33,8 +34,8 @@ export const POST = createGenerationRoute<CardInput, CardText, CardGeneration, G
   async render(generation, text) {
     const design = await getCardDesign(generation.designSlug, { includeInactive: true });
     if (!design) throw new Error(`Design ${generation.designSlug} missing`);
-    const png = await renderCardPng(design, text, generation.input.senderName);
-    const pdf = await cardPdfFromPng(png, `Christmas card for ${generation.input.recipientName}`);
+    const png = await renderCardPng(design, text, visibleSender(generation.input));
+    const pdf = await cardPdfFromPng(png, creditLine("card", { ...generation.input, anonymous: true }));
     const base = `cards/${generation.id}`;
     await uploadGenerated([
       { path: `${base}/card.png`, body: png, contentType: "image/png" },

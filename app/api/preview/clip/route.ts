@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     const path = `previews/${song.id}/clip-${version}.mp3`;
     if (song.previewAudioPath === path) return NextResponse.json({ url: await signedUrl(path) });
 
-    const clip = await composePreviewClip(song.text, song.input.musicStyle, song.input.vocal);
+    const clip = await composePreviewClip(song.text, song.input.musicStyle, song.input.vocal, song.input.occasion);
     await uploadGenerated([{ path, body: clip, contentType: "audio/mpeg" }]);
     await savePreviewAudio(song.id, path);
     return NextResponse.json({ url: await signedUrl(path) });

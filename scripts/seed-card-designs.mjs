@@ -49,6 +49,7 @@ for (const [index, design] of designs.entries()) {
     name: design.name,
     background_path: backgroundPath,
     layout: design.layout,
+    occasions: design.occasions ?? [],
     sort: (index + 1) * 10,
     active: true,
   });

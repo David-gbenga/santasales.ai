@@ -17,7 +17,7 @@ let stripe: Stripe | undefined;
 
 export function getStripe(): Stripe {
   stripe ??= new Stripe(requireEnv("STRIPE_SECRET_KEY"), {
-    appInfo: { name: "santasales" },
+    appInfo: { name: "giftpost" },
   });
   return stripe;
 }

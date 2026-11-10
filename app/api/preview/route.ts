@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { CARD_PROMPT_VERSION } from "@/lib/ai/prompts/card";
 import { LYRICS_PROMPT_VERSION } from "@/lib/ai/prompts/lyrics";
-import { getCardDesign } from "@/lib/card-designs";
+import { designSuits, getCardDesign } from "@/lib/card-designs";
 import { PREVIEW_LIMITS } from "@/lib/pricing";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { previewRequestSchema } from "@/lib/validation";
@@ -32,6 +32,8 @@ export async function POST(request: Request) {
     if (body.kind === "card") {
       const design = await getCardDesign(body.designSlug);
       if (!design) return errorResponse("That card design isn't available any more. Pick another one.", 404);
+      if (!designSuits(design, body.input.occasion))
+        return errorResponse("That design isn't made for this occasion. Pick another one.", 400);
       designSlug = design.slug;
     }
 

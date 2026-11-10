@@ -7,6 +7,7 @@ import {
   type Vocal,
 } from "@/lib/audio-options";
 import { requireEnv } from "@/lib/env";
+import { DEFAULT_OCCASION, OCCASIONS, type Occasion } from "@/lib/occasions";
 import { parseLyricsBody } from "@/lib/lyrics-render";
 import type { LyricsText } from "@/lib/validation";
 
@@ -63,11 +64,16 @@ const MAX_SONG_MS = 5 * 60_000;
  * Builds an ElevenLabs composition plan from saved lyrics: one chunk per
  * section, lyrics passed verbatim, styles from the buyer's choices.
  */
-export function compositionPlan(lyrics: LyricsText, style: SongStyle, vocal: Vocal) {
+export function compositionPlan(
+  lyrics: LyricsText,
+  style: SongStyle,
+  vocal: Vocal,
+  occasion: Occasion = DEFAULT_OCCASION,
+) {
   const positive = [
     ...SONG_STYLES[style].styles,
     VOCALS[vocal].style,
-    "christmas",
+    OCCASIONS[occasion].music,
     "clear sung lyrics",
   ];
   const negative = ["explicit", "spoken word", "rap", "distorted vocals"];
@@ -90,10 +96,15 @@ export function compositionPlan(lyrics: LyricsText, style: SongStyle, vocal: Voc
 }
 
 /** Sung song as MP3. Synchronous: ElevenLabs returns the file when it's ready. */
-export function composeSong(lyrics: LyricsText, style: SongStyle, vocal: Vocal): Promise<Buffer> {
+export function composeSong(
+  lyrics: LyricsText,
+  style: SongStyle,
+  vocal: Vocal,
+  occasion?: Occasion,
+): Promise<Buffer> {
   return post(
     "/music?output_format=mp3_44100_128",
-    { model_id: "music_v2_5", composition_plan: compositionPlan(lyrics, style, vocal) },
+    { model_id: "music_v2_5", composition_plan: compositionPlan(lyrics, style, vocal, occasion) },
     280_000,
   );
 }
@@ -105,11 +116,16 @@ export const PREVIEW_CLIP_MS = 15_000;
  * Short sung preview of the chorus (or the first section if there's no
  * chorus), for the free song preview before payment. ~250 credits.
  */
-export function composePreviewClip(lyrics: LyricsText, style: SongStyle, vocal: Vocal): Promise<Buffer> {
+export function composePreviewClip(
+  lyrics: LyricsText,
+  style: SongStyle,
+  vocal: Vocal,
+  occasion?: Occasion,
+): Promise<Buffer> {
   const sections = parseLyricsBody(lyrics.body).filter((s) => s.lines.length > 0);
   const chorus = sections.find((s) => s.label?.toLowerCase().startsWith("chorus")) ?? sections[0];
   if (!chorus) throw new ElevenLabsError("No lyrics to sing", 422);
-  const plan = compositionPlan({ title: lyrics.title, body: `[${chorus.label ?? "Chorus"}]\n${chorus.lines.join("\n")}` }, style, vocal);
+  const plan = compositionPlan({ title: lyrics.title, body: `[${chorus.label ?? "Chorus"}]\n${chorus.lines.join("\n")}` }, style, vocal, occasion);
   plan.chunks = plan.chunks.slice(0, 1).map((c) => ({ ...c, duration_ms: PREVIEW_CLIP_MS }));
   return post("/music?output_format=mp3_44100_128", { model_id: "music_v2_5", composition_plan: plan }, 120_000);
 }

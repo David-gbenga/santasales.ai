@@ -1,13 +1,20 @@
 "use client";
 
 import { useId, useState, type FormEvent } from "react";
+import { AnonymousField, OccasionField } from "@/components/ui/occasion-fields";
 import { OwnWordsField } from "@/components/ui/own-words-field";
 import { track } from "@/lib/analytics";
+import type { Occasion } from "@/lib/occasions";
 
-type DesignOption = { slug: string; name: string; imageUrl: string };
+/** `occasions` empty means the design suits every occasion. */
+type DesignOption = { slug: string; name: string; imageUrl: string; occasions: Occasion[] };
+
+const suits = (d: DesignOption, occasion: Occasion) =>
+  d.occasions.length === 0 || d.occasions.includes(occasion);
 
 type CardFormProps = {
   designs: DesignOption[];
+  defaultOccasion: Occasion;
   priceLabel: string;
   relationships: Record<string, string>;
   tones: Record<string, { label: string; hint: string }>;
@@ -21,14 +28,26 @@ const IDEAS = [
   { label: "Their year", text: "This year they " },
   { label: "Make it rhyme", text: "Make it rhyme." },
   { label: "Keep it short", text: "Keep it short and sweet." },
-  { label: "First Christmas apart", text: "It’s our first Christmas apart." },
+  { label: "Thank them for something", text: "Thank them for " },
 ] as const;
 
 const fieldClass =
   "mt-2 block w-full rounded-md border border-ink/25 bg-white px-4 py-3 text-base text-ink placeholder:text-ink-muted/70 focus-visible:border-ink";
 
-export function CardForm({ designs, priceLabel, relationships, tones }: CardFormProps) {
-  const [design, setDesign] = useState(designs[0].slug);
+export function CardForm({
+  designs,
+  defaultOccasion,
+  priceLabel,
+  relationships,
+  tones,
+}: CardFormProps) {
+  const [occasion, setOccasion] = useState<Occasion>(defaultOccasion);
+  const shown = designs.filter((d) => suits(d, occasion));
+  const [picked, setPicked] = useState(shown[0]?.slug ?? designs[0].slug);
+  // Keep the choice when it suits the new occasion; otherwise fall back to the first that does.
+  const design = shown.some((d) => d.slug === picked) ? picked : (shown[0]?.slug ?? picked);
+  const setDesign = setPicked;
+  const [anonymous, setAnonymous] = useState(false);
   const [details, setDetails] = useState("");
   const [status, setStatus] = useState<"idle" | "loading">("idle");
   const [error, setError] = useState("");
@@ -49,6 +68,8 @@ export function CardForm({ designs, priceLabel, relationships, tones }: CardForm
           kind: "card",
           designSlug: design,
           input: {
+            occasion,
+            anonymous,
             recipientName: form.get("recipientName"),
             senderName: form.get("senderName"),
             relationship: form.get("relationship"),
@@ -74,9 +95,10 @@ export function CardForm({ designs, priceLabel, relationships, tones }: CardForm
       aria-describedby={error ? errorId : undefined}
     >
       <fieldset>
-        <legend className="text-xl font-semibold">1. Choose a design</legend>
-        <div className="mt-4 grid grid-cols-2 gap-4 sm:gap-5">
-          {designs.map((d) => (
+        <legend className="text-xl font-semibold">1. Pick the occasion and a design</legend>
+        <OccasionField value={occasion} onChange={setOccasion} noun="card" />
+        <div className="mt-6 grid grid-cols-2 gap-4 sm:gap-5">
+          {shown.map((d) => (
             <label key={d.slug} className="group cursor-pointer">
               <input
                 type="radio"
@@ -127,7 +149,7 @@ export function CardForm({ designs, priceLabel, relationships, tones }: CardForm
               />
             </label>
             <label className="block font-medium">
-              Your name on the card
+              Your name
               <input
                 name="senderName"
                 required
@@ -139,11 +161,13 @@ export function CardForm({ designs, priceLabel, relationships, tones }: CardForm
             </label>
           </div>
 
+          <AnonymousField checked={anonymous} onChange={setAnonymous} noun="card" />
+
           <OwnWordsField
             name="details"
             label="Describe the card in your own words"
-            hint="Who they are, what happened this year, a memory or in-joke, how you want it to sound. Keep it kind: it goes on their card."
-            placeholder="e.g. My brother moved to Canada this year. He pretends he isn’t homesick. Make it a bit funny and remind him about our Boxing Day football…"
+            hint="Who they are, what they’re celebrating, a memory or in-joke, how you want it to sound. Keep it kind: it goes on their card."
+            placeholder="e.g. My brother turns 40 and just moved to Canada. He pretends he isn’t homesick. Make it a bit funny and remind him about our Sunday football…"
             ideas={IDEAS}
             max={DETAILS_MAX}
             value={details}

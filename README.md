@@ -1,6 +1,6 @@
-# Snowpost (working name)
+# Giftpost
 
-A Christmas-themed store: digital downloads, a store-links gallery, AI-written cards and song lyrics (pay first, then generate), and an admin dashboard. See [docs/PRD.md](docs/PRD.md) for requirements and the phased build plan, and [CLAUDE.md](CLAUDE.md) for engineering rules.
+Giftpost (giftpost.com): personal AI-written cards and sung songs for any occasion (preview free, pay to unlock), digital downloads, a store-links gallery, a gift concierge, and an admin dashboard. See [docs/PRD.md](docs/PRD.md) for requirements and the phased build plan, and [CLAUDE.md](CLAUDE.md) for engineering rules.
 
 ## Requirements
 

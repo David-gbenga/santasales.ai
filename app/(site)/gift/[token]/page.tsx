@@ -4,9 +4,10 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { loadGift } from "@/lib/gifts";
 import { giftTokenSchema } from "@/lib/validation";
+import { giftPhrase } from "@/lib/occasions";
 
 export const metadata: Metadata = {
-  title: "A Christmas gift for you",
+  title: "A gift for you",
   robots: { index: false, follow: false },
 };
 
@@ -39,13 +40,13 @@ async function GiftContent({ params }: Pick<PageProps<"/gift/[token]">, "params"
   const gift = await loadGift(token.data);
   if (!gift) notFound();
 
-  const what = gift.kind === "card" ? "a Christmas card" : "a Christmas song";
+  const what = giftPhrase(gift.occasion, gift.kind === "card" ? "card" : "song");
 
   return (
     <article>
       <p className="font-semibold text-berry">For {gift.recipientName}</p>
       <h1 className="mt-2 text-balance font-display text-4xl leading-tight sm:text-5xl">
-        {gift.senderName} sent you {what}
+        {gift.senderName ?? "Someone"} sent you {what}
       </h1>
       {gift.note && (
         <blockquote className="mt-6 border-l-4 border-ember pl-4 text-lg leading-relaxed text-ink">
@@ -59,7 +60,7 @@ async function GiftContent({ params }: Pick<PageProps<"/gift/[token]">, "params"
           className="mt-8 rounded-xl bg-white p-5 shadow-sm"
         >
           <h2 id="greeting-title" className="font-semibold">
-            A voice message from {gift.senderName}
+            {gift.senderName ? `A voice message from ${gift.senderName}` : "A voice message for you"}
           </h2>
           <audio controls preload="none" src={gift.greetingAudioUrl} className="mt-3 w-full">
             Your browser can&rsquo;t play this audio.
@@ -71,7 +72,7 @@ async function GiftContent({ params }: Pick<PageProps<"/gift/[token]">, "params"
         // eslint-disable-next-line @next/next/no-img-element -- short-lived signed image
         <img
           src={gift.cardImageUrl}
-          alt={`Christmas card for ${gift.recipientName} from ${gift.senderName}`}
+          alt={`${what.replace(/^an? /, "")} for ${gift.recipientName}${gift.senderName ? ` from ${gift.senderName}` : ""}`}
           width={1500}
           height={2100}
           className="mt-8 w-full rounded-lg shadow-[0_12px_40px_rgb(19_35_63/0.25)]"
@@ -113,7 +114,7 @@ async function GiftContent({ params }: Pick<PageProps<"/gift/[token]">, "params"
       )}
 
       <p className="mt-12 border-t border-line-snow pt-6 text-ink-muted">
-        Made with Snowpost.{" "}
+        Made with Giftpost.{" "}
         <Link href="/" className="font-semibold text-ink underline underline-offset-4">
           Make one for someone
         </Link>

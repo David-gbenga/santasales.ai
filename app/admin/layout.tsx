@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: { default: "Admin", template: "%s | Snowpost admin" },
+  title: { default: "Admin", template: "%s | Giftpost admin" },
   robots: { index: false, follow: false },
 };
 
