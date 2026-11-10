@@ -3,7 +3,7 @@ import type { Prompt } from "@/lib/ai/claude";
 import type { CardInput, CardText } from "@/lib/validation";
 
 /** Bump when the wording below changes, so generations can be traced to a prompt. */
-export const CARD_PROMPT_VERSION = "card-v2"; // v2: customer's own-words brief leads; relationship optional
+export const CARD_PROMPT_VERSION = "card-v3"; // v3: sender name no longer sent (it was leaking into messages)
 
 export const CARD_MESSAGE_WORDS = { min: 30, max: 80 } as const;
 
@@ -30,7 +30,7 @@ Rules:
 - Family-friendly at all times. No swearing, innuendo, or anything unkind.
 - Write entirely original wording. Never quote, paraphrase or parody any existing song, carol, poem, film line or famous saying.
 - The message is ${CARD_MESSAGE_WORDS.min} to ${CARD_MESSAGE_WORDS.max} words. Greeting and sign-off are separate and short. If the customer asks for something short, stay near ${CARD_MESSAGE_WORDS.min} words.
-- Use the recipient's name in the greeting. Do not put the sender's name anywhere; the card adds it under the sign-off.
+- Use the recipient's name in the greeting. Don't sign the message or name the sender; the card adds the sender's name under the sign-off.
 - British English spelling. No emojis, hashtags or quotation marks around the message.
 
 The customer's own words:
@@ -43,7 +43,6 @@ The customer's own words:
 export function buildCardPrompt(input: CardInput, previous: CardText[] = []): Prompt {
   const request = {
     recipient_name: input.recipientName,
-    sender_name: input.senderName,
     relationship: input.relationship
       ? `The recipient is the sender's ${input.relationship}`
       : "(not chosen; infer from the brief if possible)",

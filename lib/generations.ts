@@ -1,19 +1,34 @@
 import "server-only";
-import { createAdminClient } from "@/lib/supabase/admin";
+import type { z } from "zod";
 import { MAX_REGENERATIONS } from "@/lib/pricing";
-import { cardInputSchema, cardTextSchema, type CardInput, type CardText } from "@/lib/validation";
+import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  cardInputSchema,
+  cardTextSchema,
+  lyricsInputSchema,
+  lyricsTextSchema,
+  type CardInput,
+  type CardText,
+  type LyricsInput,
+  type LyricsText,
+} from "@/lib/validation";
 
-export type CardGeneration = {
+type OrderInfo = { id: string; status: "pending" | "paid" | "refunded"; paidAt: string | null };
+
+/** A paid-first AI generation (card or lyrics) with its order. */
+export type Generation<Input, Text> = {
   id: string;
-  designSlug: string;
-  input: CardInput;
-  text: CardText | null;
+  designSlug: string | null;
+  input: Input;
+  text: Text | null;
   regenCount: number;
   locked: boolean;
   pngPath: string | null;
   pdfPath: string | null;
-  order: { id: string; status: "pending" | "paid" | "refunded"; paidAt: string | null } | null;
+  order: OrderInfo | null;
 };
+export type CardGeneration = Generation<CardInput, CardText> & { designSlug: string };
+export type LyricsGeneration = Generation<LyricsInput, LyricsText>;
 
 type Row = {
   id: string;
@@ -25,22 +40,26 @@ type Row = {
   locked: boolean;
   png_path: string | null;
   pdf_path: string | null;
-  orders: { id: string; status: "pending" | "paid" | "refunded"; paid_at: string | null }[];
+  orders: { id: string; status: OrderInfo["status"]; paid_at: string | null }[];
 };
 
-/** Card text is stored as JSON in output_text. */
-export function parseStoredText(outputText: string | null): CardText | null {
+/** Generated text is stored as JSON in output_text. */
+function parseStored<T>(outputText: string | null, schema: z.ZodType<T>): T | null {
   if (!outputText) return null;
   try {
-    const parsed = cardTextSchema.safeParse(JSON.parse(outputText));
+    const parsed = schema.safeParse(JSON.parse(outputText));
     return parsed.success ? parsed.data : null;
   } catch {
     return null;
   }
 }
 
-/** Loads a card generation with its order. The id is unguessable and acts as the buyer's link. */
-export async function getCardGeneration(id: string): Promise<CardGeneration | null> {
+async function loadGeneration<Input, Text>(
+  id: string,
+  kind: "card" | "lyrics",
+  inputSchema: z.ZodType<Input>,
+  textSchema: z.ZodType<Text>,
+): Promise<Generation<Input, Text> | null> {
   const { data, error } = await createAdminClient()
     .from("generations")
     .select(
@@ -49,9 +68,9 @@ export async function getCardGeneration(id: string): Promise<CardGeneration | nu
     .eq("id", id)
     .maybeSingle<Row>();
   if (error) throw new Error(`Reading generation failed: ${error.message}`);
-  if (!data || data.kind !== "card" || !data.design_id) return null;
+  if (!data || data.kind !== kind) return null;
 
-  const input = cardInputSchema.safeParse(data.input);
+  const input = inputSchema.safeParse(data.input);
   if (!input.success) throw new Error(`Generation ${id} has invalid input`);
   const order = data.orders[0];
 
@@ -59,7 +78,7 @@ export async function getCardGeneration(id: string): Promise<CardGeneration | nu
     id: data.id,
     designSlug: data.design_id,
     input: input.data,
-    text: parseStoredText(data.output_text),
+    text: parseStored(data.output_text, textSchema),
     regenCount: data.regen_count,
     locked: data.locked,
     pngPath: data.png_path,
@@ -68,6 +87,96 @@ export async function getCardGeneration(id: string): Promise<CardGeneration | nu
   };
 }
 
+/** Loads a card generation. The id is unguessable and acts as the buyer's link. */
+export async function getCardGeneration(id: string): Promise<CardGeneration | null> {
+  const g = await loadGeneration(id, "card", cardInputSchema, cardTextSchema);
+  return g && g.designSlug ? { ...g, designSlug: g.designSlug } : null;
+}
+
+export function getLyricsGeneration(id: string): Promise<LyricsGeneration | null> {
+  return loadGeneration(id, "lyrics", lyricsInputSchema, lyricsTextSchema);
+}
+
 export function rewritesLeft(regenCount: number): number {
   return Math.max(0, MAX_REGENERATIONS - regenCount);
+}
+
+// ---------------------------------------------------------------------------
+// Steps shared by the card and lyrics routes. Each one is a single
+// conditional UPDATE so concurrent requests can't double-spend.
+
+/** Saves the first draft only if none exists. Returns false if another request won. */
+export async function saveFirstDraft(id: string, text: unknown): Promise<boolean> {
+  const { data, error } = await createAdminClient()
+    .from("generations")
+    .update({ output_text: JSON.stringify(text) })
+    .eq("id", id)
+    .is("output_text", null)
+    .select("id");
+  if (error) throw new Error(`Saving draft failed: ${error.message}`);
+  return data.length > 0;
+}
+
+/** Claims one rewrite by bumping regen_count from its current value. False if someone else did. */
+export async function claimRewrite(id: string, currentCount: number): Promise<boolean> {
+  const { data, error } = await createAdminClient()
+    .from("generations")
+    .update({ regen_count: currentCount + 1 })
+    .eq("id", id)
+    .eq("regen_count", currentCount)
+    .eq("locked", false)
+    .select("id");
+  if (error) throw new Error(`Claiming rewrite failed: ${error.message}`);
+  return data.length > 0;
+}
+
+/** Gives a claimed rewrite back after a failure, so the buyer doesn't lose it. */
+export async function releaseRewrite(id: string, claimedCount: number): Promise<void> {
+  await createAdminClient()
+    .from("generations")
+    .update({ regen_count: claimedCount - 1 })
+    .eq("id", id)
+    .eq("regen_count", claimedCount);
+}
+
+export async function saveDraft(id: string, text: unknown): Promise<void> {
+  const { error } = await createAdminClient()
+    .from("generations")
+    .update({ output_text: JSON.stringify(text) })
+    .eq("id", id);
+  if (error) throw new Error(`Saving draft failed: ${error.message}`);
+}
+
+/** Uploads finished files to the private "generated" bucket. */
+export async function uploadGenerated(
+  files: { path: string; body: Buffer; contentType: string }[],
+) {
+  const db = createAdminClient();
+  for (const file of files) {
+    const { error } = await db.storage
+      .from("generated")
+      .upload(file.path, file.body, { contentType: file.contentType, upsert: true });
+    if (error) throw new Error(`Uploading ${file.path} failed: ${error.message}`);
+  }
+}
+
+/** Stores the final text and file paths and locks the generation. False if already locked. */
+export async function lockGeneration(
+  id: string,
+  text: unknown,
+  paths: { png?: string; pdf: string },
+): Promise<boolean> {
+  const { data, error } = await createAdminClient()
+    .from("generations")
+    .update({
+      output_text: JSON.stringify(text),
+      png_path: paths.png ?? null,
+      pdf_path: paths.pdf,
+      locked: true,
+    })
+    .eq("id", id)
+    .eq("locked", false)
+    .select("id");
+  if (error) throw new Error(`Locking generation failed: ${error.message}`);
+  return data.length > 0;
 }

@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { CARD_PROMPT_VERSION } from "@/lib/ai/prompts/card";
+import { LYRICS_PROMPT_VERSION } from "@/lib/ai/prompts/lyrics";
 import { getCardDesign } from "@/lib/card-designs";
 import { siteUrl } from "@/lib/env";
 import { createPendingOrder } from "@/lib/orders";
-import { CARD_PRICE_PENCE, CURRENCY } from "@/lib/pricing";
+import { CARD_PRICE_PENCE, CURRENCY, LYRICS_PRICE_PENCE } from "@/lib/pricing";
 import { AUTOMATIC_TAX_ENABLED, DIGITAL_CONSENT_TEXT, getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkoutRequestSchema, type CheckoutRequest } from "@/lib/validation";
@@ -126,6 +127,54 @@ async function checkoutCard(
   return { url: session.url };
 }
 
+/** Pay first, like cards: inputs saved as a pending lyrics generation. */
+async function checkoutLyrics(
+  request: Extract<CheckoutRequest, { kind: "lyrics" }>,
+  origin: string,
+): Promise<CheckoutResult> {
+  const { data: generation, error } = await createAdminClient()
+    .from("generations")
+    .insert({
+      kind: "lyrics",
+      design_id: null,
+      input: { ...request.input, promptVersion: LYRICS_PROMPT_VERSION },
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(`Creating generation failed: ${error.message}`);
+
+  const session = await getStripe().checkout.sessions.create({
+    ...baseSession(),
+    line_items: [
+      {
+        quantity: 1,
+        price_data: {
+          currency: CURRENCY,
+          unit_amount: LYRICS_PRICE_PENCE,
+          product_data: {
+            name: `Personal Christmas song lyrics for ${request.input.recipientName}`,
+            description:
+              "Original lyrics written for them, with 3 rewrites included. PDF and TXT download.",
+          },
+        },
+      },
+    ],
+    metadata: { kind: "lyrics", generation_id: generation.id },
+    success_url: `${origin}/lyrics/${generation.id}?session_id={CHECKOUT_SESSION_ID}`,
+    cancel_url: `${origin}/lyrics`,
+  });
+  if (!session.url) throw new Error("Stripe returned no checkout URL");
+
+  await createPendingOrder({
+    kind: "lyrics",
+    generationId: generation.id,
+    sessionId: session.id,
+    amountPence: LYRICS_PRICE_PENCE,
+    currency: CURRENCY,
+  });
+  return { url: session.url };
+}
+
 /** Creates a Stripe Checkout Session. Prices always come from the server, never the request. */
 export async function POST(request: Request) {
   const parsed = checkoutRequestSchema.safeParse(await request.json().catch(() => null));
@@ -140,10 +189,13 @@ export async function POST(request: Request) {
 
   try {
     const origin = siteUrl(request);
+    const data = parsed.data;
     const result =
-      parsed.data.kind === "product"
-        ? await checkoutProduct(parsed.data.productId, origin)
-        : await checkoutCard(parsed.data, origin);
+      data.kind === "product"
+        ? await checkoutProduct(data.productId, origin)
+        : data.kind === "card"
+          ? await checkoutCard(data, origin)
+          : await checkoutLyrics(data, origin);
     if ("error" in result) return errorResponse(result.error, result.status);
     return NextResponse.json({ url: result.url });
   } catch (err) {

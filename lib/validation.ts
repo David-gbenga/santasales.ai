@@ -65,6 +65,51 @@ export const cardTextSchema = z.object({
 });
 export type CardText = z.infer<typeof cardTextSchema>;
 
+// ---------------------------------------------------------------------------
+// Lyrics inputs
+
+export const LYRIC_STYLES = ["cheerful", "sentimental", "funny"] as const;
+export const LYRIC_LENGTHS = ["short", "standard", "long"] as const;
+
+export const lyricsInputSchema = z
+  .object({
+    recipientName: requiredText(40, "Their name"),
+    senderName: requiredText(40, "Your name"),
+    relationship: z
+      .union([z.enum(RELATIONSHIPS), z.literal("")])
+      .optional()
+      .transform((r) => r || undefined),
+    style: z.enum(LYRIC_STYLES),
+    length: z.enum(LYRIC_LENGTHS),
+    details: cleanText(CARD_BRIEF_MAX).optional().default(""),
+  })
+  .refine((v) => v.relationship || v.details.length >= MIN_BRIEF_WITHOUT_RELATIONSHIP, {
+    message: "tell us who they are to you, or describe the song in your own words",
+    path: ["relationship"],
+  });
+export type LyricsInput = z.infer<typeof lyricsInputSchema>;
+
+/**
+ * Finished lyrics as the buyer sees and edits them: a title plus the body,
+ * with section labels on their own lines, e.g. "[Verse 1]", "[Chorus]".
+ */
+export const lyricsTextSchema = z.object({
+  title: requiredText(80, "Title"),
+  // Keep line breaks: only trim the ends and strip control characters.
+  body: z
+    .string()
+    .transform((s) =>
+      s
+        .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "")
+        .replace(/\r\n/g, "\n")
+        .trim(),
+    )
+    .pipe(
+      z.string().min(1, "Lyrics are required").max(4000, "keep it to 4000 characters or fewer"),
+    ),
+});
+export type LyricsText = z.infer<typeof lyricsTextSchema>;
+
 export const designSlugSchema = z
   .string()
   .max(64)
@@ -77,6 +122,7 @@ export const designSlugSchema = z
 export const checkoutRequestSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("product"), productId: z.uuid() }),
   z.object({ kind: z.literal("card"), designSlug: designSlugSchema, input: cardInputSchema }),
+  z.object({ kind: z.literal("lyrics"), input: lyricsInputSchema }),
 ]);
 export type CheckoutRequest = z.infer<typeof checkoutRequestSchema>;
 
@@ -84,6 +130,7 @@ export type CheckoutRequest = z.infer<typeof checkoutRequestSchema>;
 export const checkoutMetadataSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("product"), product_id: z.uuid() }),
   z.object({ kind: z.literal("card"), generation_id: z.uuid() }),
+  z.object({ kind: z.literal("lyrics"), generation_id: z.uuid() }),
 ]);
 export type CheckoutMetadata = z.infer<typeof checkoutMetadataSchema>;
 
@@ -104,6 +151,14 @@ export const generateCardRequestSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("finalize"), generationId: z.uuid(), text: cardTextSchema }),
 ]);
 export type GenerateCardRequest = z.infer<typeof generateCardRequestSchema>;
+
+/** Body of POST /api/generate/lyrics. */
+export const generateLyricsRequestSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("generate"), generationId: z.uuid() }),
+  z.object({ action: z.literal("regenerate"), generationId: z.uuid() }),
+  z.object({ action: z.literal("finalize"), generationId: z.uuid(), text: lyricsTextSchema }),
+]);
+export type GenerateLyricsRequest = z.infer<typeof generateLyricsRequestSchema>;
 
 // ---------------------------------------------------------------------------
 // Analytics

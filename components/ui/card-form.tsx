@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState, type FormEvent } from "react";
+import { OwnWordsField } from "@/components/ui/own-words-field";
 import { track } from "@/lib/analytics";
 
 type DesignOption = { slug: string; name: string; imageUrl: string };
@@ -31,15 +32,7 @@ export function CardForm({ designs, priceLabel, relationships, tones }: CardForm
   const [details, setDetails] = useState("");
   const [status, setStatus] = useState<"idle" | "loading">("idle");
   const [error, setError] = useState("");
-  const ids = { details: useId(), detailsHint: useId(), error: useId() };
-
-  function addIdea(text: string) {
-    setDetails((current) => {
-      const joined = current.trim() ? `${current.trim()} ${text}` : text;
-      return joined.slice(0, DETAILS_MAX);
-    });
-    document.getElementById(ids.details)?.focus();
-  }
+  const errorId = useId();
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -78,7 +71,7 @@ export function CardForm({ designs, priceLabel, relationships, tones }: CardForm
     <form
       onSubmit={onSubmit}
       className="mt-12 grid gap-12 lg:grid-cols-[1.15fr_1fr]"
-      aria-describedby={error ? ids.error : undefined}
+      aria-describedby={error ? errorId : undefined}
     >
       <fieldset>
         <legend className="text-xl font-semibold">1. Choose a design</legend>
@@ -146,44 +139,16 @@ export function CardForm({ designs, priceLabel, relationships, tones }: CardForm
             </label>
           </div>
 
-          <div>
-            <label htmlFor={ids.details} className="block font-medium">
-              Describe the card in your own words{" "}
-              <span className="font-normal text-ink-muted">(optional, but it helps)</span>
-            </label>
-            <p id={ids.detailsHint} className="mt-1 text-sm text-ink-muted">
-              Who they are, what happened this year, a memory or in-joke, how you want it to sound.
-              Keep it kind: it goes on their card.
-            </p>
-            <textarea
-              id={ids.details}
-              name="details"
-              rows={5}
-              maxLength={DETAILS_MAX}
-              value={details}
-              onChange={(e) => setDetails(e.target.value)}
-              aria-describedby={ids.detailsHint}
-              placeholder="e.g. My brother moved to Canada this year. He pretends he isn’t homesick. Make it a bit funny and remind him about our Boxing Day football…"
-              className={fieldClass}
-            />
-            <div className="mt-2 flex flex-wrap items-start justify-between gap-2">
-              <div role="group" aria-label="Ideas to add" className="flex flex-wrap gap-2">
-                {IDEAS.map((idea) => (
-                  <button
-                    key={idea.label}
-                    type="button"
-                    onClick={() => addIdea(idea.text)}
-                    className="min-h-9 rounded-full border border-ink/25 bg-white px-3 text-sm font-medium text-ink transition-colors hover:border-ink"
-                  >
-                    + {idea.label}
-                  </button>
-                ))}
-              </div>
-              <p className="shrink-0 text-sm tabular-nums text-ink-muted">
-                {details.length}/{DETAILS_MAX}
-              </p>
-            </div>
-          </div>
+          <OwnWordsField
+            name="details"
+            label="Describe the card in your own words"
+            hint="Who they are, what happened this year, a memory or in-joke, how you want it to sound. Keep it kind: it goes on their card."
+            placeholder="e.g. My brother moved to Canada this year. He pretends he isn’t homesick. Make it a bit funny and remind him about our Boxing Day football…"
+            ideas={IDEAS}
+            max={DETAILS_MAX}
+            value={details}
+            onChange={setDetails}
+          />
 
           <label className="block font-medium">
             Who are they to you?{" "}
@@ -234,7 +199,7 @@ export function CardForm({ designs, priceLabel, relationships, tones }: CardForm
             You&rsquo;ll pay on Stripe&rsquo;s secure page, then come straight back here while we
             write the message.
           </p>
-          <p id={ids.error} role="alert" className="mt-3 min-h-6 font-medium text-berry">
+          <p id={errorId} role="alert" className="mt-3 min-h-6 font-medium text-berry">
             {error}
           </p>
         </div>

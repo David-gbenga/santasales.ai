@@ -12,11 +12,15 @@ type OrderWithFiles = {
   generation: { locked: boolean; png_path: string | null; pdf_path: string | null } | null;
 };
 
-/** ?format=png|pdf picks the card file; ?view=1 shows it inline instead of downloading. */
+/**
+ * ?format picks the file: png|pdf for cards, pdf|txt for lyrics.
+ * ?view=1 shows it inline instead of downloading.
+ */
 const querySchema = z.object({
-  format: z.enum(["png", "pdf"]).default("pdf"),
+  format: z.enum(["png", "pdf", "txt"]).default("pdf"),
   view: z.enum(["1"]).optional(),
 });
+type Format = z.infer<typeof querySchema>["format"];
 
 type FileRef = { bucket: string; path: string; filename: string };
 
@@ -24,7 +28,18 @@ function errorResponse(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
 }
 
-function fileForOrder(order: OrderWithFiles, format: "png" | "pdf"): FileRef | string {
+function fileForOrder(order: OrderWithFiles, format: Format): FileRef | string {
+  if (order.kind === "lyrics") {
+    const pdfPath = order.generation?.pdf_path;
+    if (!order.generation?.locked || !pdfPath) {
+      return "Your song isn't finished yet. Go back to the song page and press Save my song.";
+    }
+    if (format === "png") return "Songs download as PDF or TXT.";
+    // The TXT is stored next to the PDF (see app/api/generate/lyrics/route.ts).
+    const path = format === "txt" ? pdfPath.replace(/\.pdf$/, ".txt") : pdfPath;
+    return { bucket: "generated", path, filename: `christmas-song.${format}` };
+  }
+  if (format === "txt") return "That file type isn't available for this order.";
   if (order.kind === "product") {
     if (!order.product) return "This order has no file to download.";
     const extension = order.product.file_path.split(".").pop() ?? "pdf";
