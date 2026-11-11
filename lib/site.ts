@@ -21,17 +21,17 @@ export const site = {
  * Who sells on Giftpost, as shown on the legal pages. UK law requires the
  * seller's name, a contact email and a geographic address.
  *
- * TODO before launch: replace every value in [square brackets] with your
- * real details. While any placeholder remains, the legal pages show a
+ * Filled in 2026-11-11. A value starting with "[" counts as a placeholder:
+ * while any remains, the legal pages show a
  * warning banner and the admin dashboard flags it.
  */
 export const seller = {
   /** Your full legal name, or "Jane Smith trading as Giftpost". */
-  legalName: "[YOUR LEGAL OR TRADING NAME]",
+  legalName: "Tech Reyal Ltd trading as Giftpost",
   /** Where customers and data-protection requests go. */
-  email: "[CONTACT EMAIL]",
+  email: "info@techreyal.org",
   /** A UK postal address where you can receive letters. */
-  address: "[UK POSTAL ADDRESS]",
+  address: "12B Southchurch Road, Southend-on-Sea, SS1 2NE",
   /** Update when the terms or privacy notice change. */
   lastUpdated: "11 November 2026",
 } as const;
