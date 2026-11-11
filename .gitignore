@@ -47,3 +47,5 @@ next-env.d.ts
 # allow committing the env template
 !.env.example
 scripts/gallery-art/out/
+scripts/products/fonts/*.ttf
+scripts/products/out/
