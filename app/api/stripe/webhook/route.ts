@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { requireEnv } from "@/lib/env";
-import { markOrderPaid } from "@/lib/orders";
+import { markOrderPaid, markOrderRefunded } from "@/lib/orders";
 import { getStripe } from "@/lib/stripe";
 
 /**
- * Stripe webhook: the ONLY place an order becomes paid. The signature is
+ * Stripe webhook: the ONLY place an order becomes paid (or refunded). The signature is
  * verified against the raw body before anything is trusted.
  */
 export async function POST(request: Request) {
@@ -34,6 +34,17 @@ export async function POST(request: Request) {
         // they're marked paid when async_payment_succeeded arrives.
         if (session.payment_status === "paid") {
           await markOrderPaid(session, new Date(event.created * 1000));
+        }
+        break;
+      }
+      case "charge.refunded": {
+        // Only a full refund withdraws the order; partial refunds keep access.
+        const charge = event.data.object;
+        const paymentIntent =
+          typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id;
+        if (charge.refunded && paymentIntent) {
+          const matched = await markOrderRefunded(paymentIntent);
+          if (!matched) console.warn("[stripe-webhook] refund for an unknown payment", paymentIntent);
         }
         break;
       }

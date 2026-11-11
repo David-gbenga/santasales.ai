@@ -1,5 +1,6 @@
 import "server-only";
 import type Stripe from "stripe";
+import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { checkoutMetadataSchema } from "@/lib/validation";
 
@@ -73,6 +74,30 @@ export async function markOrderPaid(session: Stripe.Checkout.Session, paidAt: Da
     { onConflict: "stripe_session_id" },
   );
   if (error) throw new Error(`Marking order paid failed: ${error.message}`);
+}
+
+/**
+ * Marks the order behind a fully refunded charge as refunded: downloads,
+ * gift links and add-on recordings stop, and it leaves the revenue figures.
+ * Orders are keyed by Checkout Session, so the session is found from the
+ * charge's payment intent. Returns false when no order matches (e.g. a
+ * payment taken outside Giftpost). Idempotent.
+ */
+export async function markOrderRefunded(paymentIntentId: string): Promise<boolean> {
+  const sessions = await getStripe().checkout.sessions.list({
+    payment_intent: paymentIntentId,
+    limit: 1,
+  });
+  const session = sessions.data[0];
+  if (!session) return false;
+
+  const { data, error } = await createAdminClient()
+    .from("orders")
+    .update({ status: "refunded" })
+    .eq("stripe_session_id", session.id)
+    .select("id");
+  if (error) throw new Error(`Marking order refunded failed: ${error.message}`);
+  return data.length > 0;
 }
 
 export async function getOrderBySessionId(sessionId: string): Promise<OrderSummary | null> {
