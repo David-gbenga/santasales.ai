@@ -6,6 +6,7 @@ const NAV = [
   { href: "/admin/products", label: "Products" },
   { href: "/admin/gallery", label: "Gallery" },
   { href: "/admin/designs", label: "Card designs" },
+  { href: "/admin/bootcamp", label: "Bootcamp" },
 ] as const;
 
 /** Header and frame for signed-in admin pages. */

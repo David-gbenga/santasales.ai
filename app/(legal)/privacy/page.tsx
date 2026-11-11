@@ -47,6 +47,12 @@ export default function PrivacyPage() {
             find your orders and send the links to that address.
           </li>
           <li>
+            <strong>Bootcamp sign-ups</strong>: if you register for our free AI engineering
+            bootcamp, we keep your name, email address, coding experience and (if you tell us) what
+            you&rsquo;d like to build, to email you about the bootcamp (your consent). Ask us any
+            time and we&rsquo;ll delete them.
+          </li>
+          <li>
             <strong>Site statistics</strong>, without cookies: which pages are viewed and which
             gallery links are clicked, with the referring website&rsquo;s name. These records
             contain no IP address or identifier (legitimate interests: understanding what&rsquo;s

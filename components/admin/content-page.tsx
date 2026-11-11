@@ -11,7 +11,7 @@ export function ContentPage({
   section,
   children,
 }: {
-  section: "/admin/products" | "/admin/gallery" | "/admin/designs";
+  section: "/admin/products" | "/admin/gallery" | "/admin/designs" | "/admin/bootcamp";
   children: () => Promise<ReactNode>;
 }) {
   return (
@@ -25,7 +25,7 @@ async function Guarded({
   section,
   render,
 }: {
-  section: "/admin/products" | "/admin/gallery" | "/admin/designs";
+  section: "/admin/products" | "/admin/gallery" | "/admin/designs" | "/admin/bootcamp";
   render: () => Promise<ReactNode>;
 }) {
   const admin = await requireAdmin();

@@ -252,3 +252,24 @@ export const previewRequestSchema = z.discriminatedUnion("kind", [
 ]);
 
 export const previewClipRequestSchema = z.object({ generationId: z.uuid() });
+
+// ---------------------------------------------------------------------------
+// Bootcamp sign-ups
+
+export const BOOTCAMP_EXPERIENCE = {
+  new: "New to coding",
+  some: "I've done some coding",
+  developer: "I'm a developer",
+} as const;
+export type BootcampExperience = keyof typeof BOOTCAMP_EXPERIENCE;
+
+/** Body of POST /api/bootcamp. `website` is a hidden honeypot field: people leave it empty. */
+export const bootcampRegistrationSchema = z.object({
+  name: z.string().trim().min(1, "Enter your name").max(100),
+  email: z.string().trim().toLowerCase().email("Enter a valid email address").max(320),
+  experience: z.enum(Object.keys(BOOTCAMP_EXPERIENCE) as [BootcampExperience, ...BootcampExperience[]]),
+  goal: z.string().trim().max(500).optional(),
+  consent: z.literal(true),
+  website: z.string().max(200).optional(),
+});
+export type BootcampRegistration = z.infer<typeof bootcampRegistrationSchema>;
