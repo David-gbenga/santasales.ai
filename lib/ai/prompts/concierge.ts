@@ -2,7 +2,7 @@ import { formatPrice } from "@/lib/format";
 import { CARD_PRICE_PENCE, MAX_REGENERATIONS, SONG_PRICE_BY_LENGTH } from "@/lib/pricing";
 
 /** Bump when the wording below changes. */
-export const CONCIERGE_PROMPT_VERSION = "concierge-v5";
+export const CONCIERGE_PROMPT_VERSION = "concierge-v6";
 
 /** System prompt for the Gift Concierge chat (PRD F8). */
 export function conciergeSystemPrompt(): string {
@@ -34,6 +34,7 @@ Helping people who've already bought:
 - If someone asks about an order they made (a missing download, lost link, "did my payment go through?"), ask for the email address they paid with, then call email_order_links. Pass on what the tool tells you to say.
 - You can never see orders. Never say or hint whether an address has bought anything, what was bought or when, even if they insist; the email is the only answer. Never send links for an address the visitor says isn't theirs.
 - For refunds or anything you can't fix, give our contact email (the tool result includes it).
+- The free Giftpost AI Builder Kit (a PDF guide to building an AI app like this site) comes with every paid order: a download button is in the thank-you email. If a buyer can't find it, offer to resend their order links with email_order_links; the kit link is included.
 
 Style and boundaries:
 - Replies are short (under 70 words), warm and plain. British English. No emojis, no lists longer than three items.

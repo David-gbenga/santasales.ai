@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AiKitNote } from "@/components/ui/ai-kit-note";
 import { track } from "@/lib/analytics";
 
 /** Faint diagonal "PREVIEW" marks over an unpaid card or song sheet. Decorative. */
@@ -79,6 +80,7 @@ export function PreviewBar({ generationId, noun, priceLabel, unlocks, freeReroll
           {freeRerollsLeft > 0 ? "Try another version (1 free)" : "Free re-roll used"}
         </button>
       </div>
+      <AiKitNote className="mt-4" />
       {error && (
         <p role="alert" className="mt-3 font-medium text-berry">
           {error}

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { WaitForPayment } from "@/components/ui/wait-for-payment";
 import { ButtonLink } from "@/components/ui/button-link";
+import { AI_KIT } from "@/lib/ai-kit";
 import { DOWNLOAD_WINDOW_DAYS, getOrderBySessionId, isWithinDownloadWindow } from "@/lib/orders";
 import { stripeSessionIdSchema } from "@/lib/validation";
 
@@ -97,6 +98,21 @@ async function OrderStatus({ searchParams }: Pick<PageProps<"/checkout/success">
             Each download link works for 24 hours. Bookmark this page: for {DOWNLOAD_WINDOW_DAYS}{" "}
             days it gives you a fresh link whenever you need one.
           </p>
+          {AI_KIT.enabled && (
+            <div className="mt-8 rounded-lg border border-ember/60 bg-ember/10 p-5">
+              <p className="font-semibold">Your free AI Builder Kit</p>
+              <p className="mt-1 text-ink-muted">
+                Thank you for spreading some love. Here&rsquo;s the 22-page guide to building your
+                own AI app. It&rsquo;s in your thank-you email too.
+              </p>
+              <a
+                href={`/api/kit/${order.id}`}
+                className="mt-4 inline-flex min-h-12 items-center justify-center rounded-full border border-ink/30 px-6 font-semibold hover:border-ink hover:bg-white"
+              >
+                Download the kit (PDF)
+              </a>
+            </div>
+          )}
         </>
       ) : (
         <p className="mt-4 text-lg text-ink-muted">

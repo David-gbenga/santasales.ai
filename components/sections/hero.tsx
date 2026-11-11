@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { HeroArt } from "@/components/three/hero-art";
+import { AiKitNote } from "@/components/ui/ai-kit-note";
 import { ButtonLink } from "@/components/ui/button-link";
 import { displayPrices, site } from "@/lib/site";
 
@@ -38,6 +39,7 @@ export function Hero() {
               See the gallery
             </Link>
           </div>
+          <AiKitNote tone="night" className="mt-6 max-w-[34rem]" />
         </div>
 
         {/* Fixed-size box so the art never shifts layout while the 3D scene loads. */}

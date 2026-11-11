@@ -1,5 +1,6 @@
 import "server-only";
 import { createHmac } from "node:crypto";
+import { AI_KIT } from "@/lib/ai-kit";
 import { emailEnabled, sendEmail } from "@/lib/email";
 import { requireEnv, siteUrl } from "@/lib/env";
 import { formatPrice } from "@/lib/format";
@@ -46,6 +47,12 @@ function lineFor(order: OrderRow, origin: string): OrderLine {
     case "voice_greeting":
       return { title: "Your voice greeting", action: "Download MP3", url: download("mp3"), price };
   }
+}
+
+/** The free AI Builder Kit line, linked through one of the buyer's paid orders. */
+function kitLine(orderId: string, origin: string): OrderLine[] {
+  if (!AI_KIT.enabled) return [];
+  return [{ title: AI_KIT.title, action: "Download the kit (PDF)", url: `${origin}/api/kit/${orderId}`, price: "Free with your order" }];
 }
 
 /** Builds the thank-you email listing each order with its link. */
@@ -124,7 +131,10 @@ export async function sendThankYouForSession(sessionId: string): Promise<void> {
     const sent = await sendEmail({
       to: order.email,
       replyTo: seller.email,
-      ...buildThankYouEmail([lineFor(order, siteUrl())], "purchase"),
+      ...buildThankYouEmail(
+        [lineFor(order, siteUrl()), ...kitLine(order.id, siteUrl())],
+        "purchase",
+      ),
     });
     if (!sent) {
       await db.from("orders").update({ thankyou_sent_at: null }).eq("id", order.id);
@@ -188,7 +198,7 @@ export async function resendOrderLinks(email: string, request: Request): Promise
     to: address,
     replyTo: seller.email,
     ...buildThankYouEmail(
-      data.map((o) => lineFor(o, origin)),
+      [...data.map((o) => lineFor(o, origin)), ...kitLine(data[0].id, origin)],
       "resend",
     ),
   });

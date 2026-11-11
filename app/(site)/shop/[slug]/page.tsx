@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { AiKitNote } from "@/components/ui/ai-kit-note";
 import { BuyButton } from "@/components/ui/buy-button";
 import { ProductImage } from "@/components/ui/product-card";
 import { formatPrice } from "@/lib/format";
@@ -55,6 +56,7 @@ export default async function ProductPage({ params }: PageProps<"/shop/[slug]">)
                 label={`Buy for ${formatPrice(product.price_pence, product.currency)}`}
               />
             </div>
+            <AiKitNote className="mt-6 max-w-prose" />
 
             <ul className="mt-8 max-w-prose space-y-2 text-ink-muted">
               <li>You&rsquo;ll pay on Stripe&rsquo;s secure checkout page. No account needed.</li>
