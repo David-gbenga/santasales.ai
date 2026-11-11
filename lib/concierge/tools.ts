@@ -9,6 +9,8 @@ import { LYRIC_LENGTH_LABELS, LYRIC_STYLE_LABELS } from "@/lib/lyrics-options";
 import { mediaUrl } from "@/lib/media";
 import { SONG_STYLES, SONG_STYLE_KEYS, VOCAL_KEYS } from "@/lib/audio-options";
 import { OCCASION_KEYS } from "@/lib/occasions";
+import { resendOrderLinks } from "@/lib/order-emails";
+import { seller } from "@/lib/site";
 import { CARD_PRICE_PENCE, SONG_PRICE_BY_LENGTH, songPricePence } from "@/lib/pricing";
 import { getActiveProducts } from "@/lib/products";
 import {
@@ -65,7 +67,11 @@ const personFields = {
  * `widgets`; nothing here takes payment or creates a checkout session (the
  * shopper's Pay click does that through /api/checkout).
  */
-export function createConciergeTools(widgets: ConciergeWidget[], shown: string[]) {
+export function createConciergeTools(
+  widgets: ConciergeWidget[],
+  shown: string[],
+  request: Request,
+) {
   const searchGifts = betaZodTool({
     name: "search_gifts",
     description:
@@ -253,5 +259,23 @@ export function createConciergeTools(widgets: ConciergeWidget[], shown: string[]
     },
   });
 
-  return [searchGifts, showProducts, listCardDesigns, offerCard, offerSong];
+  const emailOrderLinks = betaZodTool({
+    name: "email_order_links",
+    description:
+      "For a visitor who has bought something: emails links for every paid order under their email address (last 30 days), with a thank-you. Only call when they ask about an order they made, and only with the address they gave you. The result never says whether orders exist.",
+    inputSchema: z.object({
+      email: z.string().trim().email().max(320).describe("The address the visitor says they paid with"),
+    }),
+    async run({ email }) {
+      const result = await resendOrderLinks(email, request);
+      if (result === "limited")
+        return `Not sent: too many requests today. Tell them to check their inbox and spam for the receipt and earlier emails, or write to ${seller.email}.`;
+      if (result === "unavailable")
+        return `Email isn't available right now. Tell them their Stripe receipt has the details, or they can write to ${seller.email} and we'll help.`;
+      shown.push("order links emailed (if orders exist)");
+      return `Processed. Tell them: if there are paid orders under that address from the last 30 days, an email with their links is on its way, so check spam too. If nothing arrives in 10 minutes, try the address on their Stripe receipt or write to ${seller.email}. Do NOT say whether they have orders: you don't know.`;
+    },
+  });
+
+  return [searchGifts, showProducts, listCardDesigns, offerCard, offerSong, emailOrderLinks];
 }

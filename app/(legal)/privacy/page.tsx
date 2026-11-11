@@ -27,7 +27,9 @@ export default function PrivacyPage() {
             <strong>Order details</strong> from Stripe when you pay: your email address, the amount,
             and what you bought. We need these to deliver your order and keep tax records (legal
             obligation, and performing our contract with you). Stripe handles your card details;
-            we never see them.
+            we never see them. We use your email address to send a thank-you with your order
+            links, and to resend those links if you ask Susan, our chat helper, for them. We
+            don&rsquo;t send marketing emails.
           </li>
           <li>
             <strong>What you type</strong> to make a card or song: names, who they are to you, your
@@ -39,8 +41,10 @@ export default function PrivacyPage() {
             off.
           </li>
           <li>
-            <strong>Gift concierge chat</strong>: your messages are sent to our AI provider to
-            answer them. The conversation is kept in your own browser, not on our servers.
+            <strong>Gift concierge chat (Susan)</strong>: your messages are sent to our AI provider
+            to answer them. The conversation is kept in your own browser, not on our servers. If
+            you ask Susan to resend your order links, the email address you give is used only to
+            find your orders and send the links to that address.
           </li>
           <li>
             <strong>Site statistics</strong>, without cookies: which pages are viewed and which
@@ -84,6 +88,10 @@ export default function PrivacyPage() {
           <li>
             <strong>ElevenLabs</strong> (sung songs, song samples and voice greetings): receives
             the lyrics or greeting words.
+          </li>
+          <li>
+            <strong>Resend</strong> (order emails): receives your email address and the order
+            links we send you.
           </li>
           <li>
             <strong>Supabase</strong> (database, file storage and admin sign-in), with data stored

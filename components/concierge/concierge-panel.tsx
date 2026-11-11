@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { ConciergeWidgetView } from "@/components/concierge/concierge-widgets";
+import { CONCIERGE_NAME, SusanAvatar } from "@/components/concierge/susan-avatar";
 import {
   CONCIERGE_LIMITS,
   type ConciergeMessage,
@@ -18,9 +19,9 @@ const STARTERS = [
   "A gift for my mum, under £10",
   "Something funny for my brother",
   "Help me write a card for my grandad",
+  "I need the links to my order",
 ];
-const GREETING =
-  "Hi! I can help you find a gift for any occasion. Who are you shopping for, and roughly what would you like to spend?";
+const GREETING = `Hi, I'm ${CONCIERGE_NAME}! I can help you find a gift for any occasion. Who are you shopping for, and roughly what would you like to spend?`;
 
 function loadChat(): ChatItem[] {
   try {
@@ -135,13 +136,16 @@ export default function ConciergePanel({ open, onClose }: { open: boolean; onClo
       className="fixed inset-x-0 bottom-0 z-50 flex h-[min(100dvh,640px)] flex-col overflow-hidden bg-snow text-ink shadow-[0_-8px_40px_rgb(13_26_49/0.35)] sm:inset-x-auto sm:bottom-6 sm:right-6 sm:h-[min(80dvh,640px)] sm:w-[400px] sm:rounded-xl"
     >
       <header className="flex items-center justify-between gap-3 bg-night px-4 py-3 text-frost">
-        <div>
-          <h2 id={titleId} className="font-display text-xl">
-            Gift concierge
-          </h2>
-          <p className="text-xs text-frost-muted">
-            AI helper. Suggestions only come from this site.
-          </p>
+        <div className="flex items-center gap-3">
+          <SusanAvatar size={44} className="ring-2 ring-ember" />
+          <div>
+            <h2 id={titleId} className="font-display text-xl">
+              {CONCIERGE_NAME}, gift concierge
+            </h2>
+            <p className="text-xs text-frost-muted">
+              AI helper. Suggestions only come from this site.
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-1">
           {items.length > 0 && (
@@ -156,7 +160,7 @@ export default function ConciergePanel({ open, onClose }: { open: boolean; onClo
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close gift concierge"
+            aria-label={`Close chat with ${CONCIERGE_NAME}`}
             className="inline-flex size-10 items-center justify-center rounded-full text-frost-muted hover:bg-night-raised hover:text-frost"
           >
             <svg
@@ -180,8 +184,12 @@ export default function ConciergePanel({ open, onClose }: { open: boolean; onClo
         className="flex-1 space-y-4 overflow-y-auto overscroll-contain px-4 py-4"
         aria-label="Conversation"
       >
-        <li className="max-w-[85%] rounded-2xl rounded-tl-sm bg-white px-4 py-3 shadow-sm">
-          {GREETING}
+        <li className="flex items-start gap-2">
+          <SusanAvatar size={32} />
+          <p className="max-w-[85%] rounded-2xl rounded-tl-sm bg-white px-4 py-3 shadow-sm">
+            <span className="sr-only">{CONCIERGE_NAME}: </span>
+            {GREETING}
+          </p>
         </li>
         {items.length === 0 && (
           <li className="flex flex-wrap gap-2" aria-label="Suggestions">
@@ -208,10 +216,13 @@ export default function ConciergePanel({ open, onClose }: { open: boolean; onClo
             </li>
           ) : (
             <li key={i} className="space-y-3">
-              <p className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-tl-sm bg-white px-4 py-3 shadow-sm">
-                <span className="sr-only">Concierge: </span>
-                {item.content}
-              </p>
+              <div className="flex items-start gap-2">
+                <SusanAvatar size={32} />
+                <p className="max-w-[85%] whitespace-pre-wrap rounded-2xl rounded-tl-sm bg-white px-4 py-3 shadow-sm">
+                  <span className="sr-only">{CONCIERGE_NAME}: </span>
+                  {item.content}
+                </p>
+              </div>
               {item.widgets.map((w, j) => (
                 <ConciergeWidgetView key={j} widget={w} />
               ))}
@@ -220,7 +231,7 @@ export default function ConciergePanel({ open, onClose }: { open: boolean; onClo
         )}
         {busy && (
           <li className="inline-flex items-center gap-1 rounded-2xl bg-white px-4 py-3 text-ink-muted shadow-sm">
-            <span className="sr-only">Concierge is typing</span>
+            <span className="sr-only">{CONCIERGE_NAME} is typing</span>
             {[0, 1, 2].map((d) => (
               <span
                 key={d}
@@ -250,7 +261,7 @@ export default function ConciergePanel({ open, onClose }: { open: boolean; onClo
         className="flex items-end gap-2 border-t border-line-snow bg-white px-3 py-3"
       >
         <label htmlFor={inputId} className="sr-only">
-          Message the gift concierge
+          Message {CONCIERGE_NAME}, the gift concierge
         </label>
         <textarea
           id={inputId}

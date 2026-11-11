@@ -86,7 +86,7 @@ export async function POST(request: Request) {
       max_tokens: 2000,
       system: conciergeSystemPrompt(),
       messages: normaliseHistory(parsed.data.messages),
-      tools: createConciergeTools(widgets, shown),
+      tools: createConciergeTools(widgets, shown, request),
       output_config: { effort: "low" },
       max_iterations: 6,
       thread: false, // send the full (short) history each turn; nothing is kept server-side

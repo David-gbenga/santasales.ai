@@ -83,7 +83,8 @@ CONCIERGE_MODEL              # Gift Concierge chat, e.g. claude-haiku-5-5; falls
 ELEVENLABS_API_KEY           # sung songs + voice greetings (Text to Speech and Music permissions)
 ADMIN_EMAILS                 # comma-separated allowlist
 CRON_SECRET
-RESEND_API_KEY               # optional (P1)
+RESEND_API_KEY               # order emails (thank-you after purchase, Susan resends links); no key = no emails
+EMAIL_FROM                   # optional sender, default "Giftpost <hello@giftpost.co.uk>"
 ```
 
 Keep `.env.example` in sync with this list. Never ask the user to paste key values into chat; tell them which variable to set and where.

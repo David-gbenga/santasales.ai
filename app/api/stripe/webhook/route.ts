@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { requireEnv } from "@/lib/env";
+import { sendThankYouForSession } from "@/lib/order-emails";
 import { markOrderPaid, markOrderRefunded } from "@/lib/orders";
 import { getStripe } from "@/lib/stripe";
 
@@ -34,6 +35,8 @@ export async function POST(request: Request) {
         // they're marked paid when async_payment_succeeded arrives.
         if (session.payment_status === "paid") {
           await markOrderPaid(session, new Date(event.created * 1000));
+          // Once per order; never throws, so email trouble can't fail the webhook.
+          await sendThankYouForSession(session.id);
         }
         break;
       }
