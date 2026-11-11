@@ -1,24 +1,14 @@
-import { timingSafeEqual } from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse } from "next/server";
 import { currentAdmin } from "@/lib/admin-auth";
 import { AiOutputError } from "@/lib/ai/claude";
 import { generateWeeklySummary } from "@/lib/admin/summary";
+import { isCron } from "@/lib/cron";
 
 export const maxDuration = 60;
 
 function errorResponse(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
-}
-
-/** Vercel Cron sends `Authorization: Bearer <CRON_SECRET>`. Compared in constant time. */
-function isCron(request: Request): boolean {
-  const secret = process.env.CRON_SECRET;
-  const header = request.headers.get("authorization") ?? "";
-  if (!secret || secret.length < 16) return false;
-  const expected = Buffer.from(`Bearer ${secret}`);
-  const given = Buffer.from(header);
-  return given.length === expected.length && timingSafeEqual(given, expected);
 }
 
 async function run() {

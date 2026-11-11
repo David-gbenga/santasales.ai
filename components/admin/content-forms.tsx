@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState, useState, type FormEvent } from "react";
+import { startTransition, useActionState, useEffect, useState, type FormEvent } from "react";
 import { saveDesign, saveGalleryItem, saveProduct } from "@/app/admin/content-actions";
 import { Checkbox, Field, SaveBar, UploadField, inputClass } from "@/components/admin/form-parts";
 import { CardPreview } from "@/components/ui/card-preview";
@@ -11,22 +11,41 @@ import {
   type FormState,
 } from "@/lib/admin/content-schemas";
 import { OCCASIONS, OCCASION_KEYS, type Occasion } from "@/lib/occasions";
+import { site } from "@/lib/site";
 
 const initial: FormState = { status: "idle", message: "" };
-
-/**
- * Submits through the action without React’s automatic form reset, so a
- * validation error doesn’t wipe what the admin typed.
- */
-function submitWith(action: (data: FormData) => void) {
-  return (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const data = new FormData(event.currentTarget);
-    startTransition(() => action(data));
-  };
-}
 const imageAccept = Object.keys(IMAGE_TYPES).join(",");
 const productAccept = Object.keys(PRODUCT_FILE_TYPES).join(",");
+
+/**
+ * After a failed save, moves focus to the first invalid field. Warns before
+ * leaving the page with unsaved changes (cleared once a save starts).
+ */
+function useFormBehaviour(state: FormState, action: (data: FormData) => void) {
+  useEffect(() => {
+    if (state.status !== "error") return;
+    document.querySelector<HTMLElement>("main form [aria-invalid=\"true\"]")?.focus();
+  }, [state]);
+
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (document.querySelector("form[data-dirty]")) event.preventDefault();
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, []);
+
+  function onChange(event: FormEvent<HTMLFormElement>) {
+    event.currentTarget.dataset.dirty = "true";
+  }
+  function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    delete event.currentTarget.dataset.dirty;
+    const data = new FormData(event.currentTarget);
+    startTransition(() => action(data));
+  }
+  return { onChange, onSubmit };
+}
 
 /** Name field that fills in the slug until the slug is edited by hand. */
 function useSlug(initialSlug: string) {
@@ -59,13 +78,14 @@ export type ProductFormValues = {
 
 export function ProductForm({ values }: { values: ProductFormValues }) {
   const [state, action, pending] = useActionState(saveProduct, initial);
+  const form = useFormBehaviour(state, action);
   const [uploading, setUploading] = useState(0);
   const slug = useSlug(values.slug);
   const e = state.fieldErrors ?? {};
   const busy = (b: boolean) => setUploading((n) => n + (b ? 1 : -1));
 
   return (
-    <form onSubmit={submitWith(action)} className="mt-8 max-w-3xl space-y-6">
+    <form onChange={form.onChange} onSubmit={form.onSubmit} className="mt-8 max-w-3xl space-y-6">
       <input type="hidden" name="id" value={values.id} />
       <div className="grid gap-6 sm:grid-cols-2">
         <Field label="Name" error={e.name}>
@@ -75,11 +95,11 @@ export function ProductForm({ values }: { values: ProductFormValues }) {
         </Field>
         <Field label="Price (£)" hint="e.g. 3.50" error={e.price}>
           {(p) => (
-            <input {...p} name="price" required inputMode="decimal" defaultValue={values.price} placeholder="2.99" className={inputClass} />
+            <input {...p} name="price" required inputMode="decimal" defaultValue={values.price} placeholder="2.99…" className={inputClass} />
           )}
         </Field>
       </div>
-      <Field label="Web address" hint={`giftpost.com/shop/${slug.slug || "…"}`} error={e.slug}>
+      <Field label="Web address" hint={`${site.domain}/shop/${slug.slug || "…"}`} error={e.slug}>
         {(p) => (
           <input {...p} name="slug" required maxLength={64} value={slug.slug} onChange={(ev) => slug.onSlug(ev.target.value)} spellCheck={false} className={inputClass} />
         )}
@@ -129,11 +149,12 @@ export type GalleryFormValues = {
 
 export function GalleryForm({ values }: { values: GalleryFormValues }) {
   const [state, action, pending] = useActionState(saveGalleryItem, initial);
+  const form = useFormBehaviour(state, action);
   const [uploading, setUploading] = useState(0);
   const e = state.fieldErrors ?? {};
 
   return (
-    <form onSubmit={submitWith(action)} className="mt-8 max-w-3xl space-y-6">
+    <form onChange={form.onChange} onSubmit={form.onSubmit} className="mt-8 max-w-3xl space-y-6">
       <input type="hidden" name="id" value={values.id} />
       <Field label="Title" error={e.title}>
         {(p) => <input {...p} name="title" required maxLength={160} defaultValue={values.title} className={inputClass} />}
@@ -197,6 +218,7 @@ const SAMPLE = {
 
 export function DesignForm({ values }: { values: DesignFormValues }) {
   const [state, action, pending] = useActionState(saveDesign, initial);
+  const form = useFormBehaviour(state, action);
   const [uploading, setUploading] = useState(0);
   const [background, setBackground] = useState(values.backgroundUrl);
   const [layout, setLayout] = useState({
@@ -215,7 +237,7 @@ export function DesignForm({ values }: { values: DesignFormValues }) {
     setLayout((l) => ({ ...l, [key]: Number(ev.target.value) || 0 }));
 
   return (
-    <form onSubmit={submitWith(action)} className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem]">
+    <form onChange={form.onChange} onSubmit={form.onSubmit} className="mt-8 grid gap-10 lg:grid-cols-[minmax(0,1fr)_20rem]">
       <div className="space-y-6">
         <input type="hidden" name="id" value={values.id} />
         <div className="grid gap-6 sm:grid-cols-2">

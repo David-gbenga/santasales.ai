@@ -4,7 +4,7 @@ Instructions for Claude Code when working in this repository. Read `docs/PRD.md`
 
 ## Project summary
 
-Giftpost (giftpost.com): digital product store (Stripe), clickable store-links gallery, AI card and sung-song generators for any occasion, with optional anonymous sending (free preview, pay to unlock), admin dashboard with an AI-written sales summary, and a 3D landing page. Target: shippable in 2 days. Favour simple, working solutions over clever ones.
+Giftpost (www.giftpost.co.uk): digital product store (Stripe), clickable store-links gallery, AI card and sung-song generators for any occasion, with optional anonymous sending (free preview, pay to unlock), admin dashboard with an AI-written sales summary, and a 3D landing page. Target: shippable in 2 days. Favour simple, working solutions over clever ones.
 
 ## Tech stack
 

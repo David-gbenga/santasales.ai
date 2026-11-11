@@ -30,3 +30,8 @@ export const VOICE_GREETING_PRICE_PENCE = 149;
 export const SONG_AUDIO_MAX_TAKES = 2;
 /** Voice greetings are cheap: allow re-recording with edited words. */
 export const VOICE_GREETING_MAX_TAKES = 3;
+
+/** Unpaid previews (and their sample clips) are deleted after this many days (privacy notice). */
+export const PREVIEW_RETENTION_DAYS = 30;
+/** Cookie-free site statistics are deleted after this many days (privacy notice). */
+export const EVENT_RETENTION_DAYS = 730;

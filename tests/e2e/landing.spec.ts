@@ -4,7 +4,8 @@ test("landing page shows headline and CTAs", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
   await expect(page.getByRole("link", { name: "Make a card" }).first()).toBeVisible();
-  await expect(page.getByRole("link", { name: "Browse the shop" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Write a song" }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "Browse the shop" }).first()).toBeVisible();
   await expect(page.getByRole("link", { name: "See the gallery" }).first()).toBeVisible();
 });
 

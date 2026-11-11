@@ -87,3 +87,9 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Light sections: native controls (select lists, file buttons, checkboxes) use light styling. */
+.bg-snow,
+.bg-white {
+  color-scheme: light;
+}

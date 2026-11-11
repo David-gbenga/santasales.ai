@@ -1,6 +1,6 @@
-# PRD — Giftpost (giftpost.com)
+# PRD — Giftpost (www.giftpost.co.uk)
 
-> **Renamed 2026-11-11:** the working name Snowpost is now **Giftpost**, on **giftpost.com**, and cards and songs are no longer Christmas-only (F12). Sections below that say "Christmas" describe the launch season.
+> **Renamed 2026-11-11:** the working name Snowpost is now **Giftpost**, on **giftpost.co.uk** (domain bought and connected 2026-11-11; the bare domain redirects to www), and cards and songs are no longer Christmas-only (F12). Sections below that say "Christmas" describe the launch season.
 
 **Status:** Draft v1 · **Owner:** [Your name] · **Target build time:** 2 focused days
 
@@ -378,14 +378,26 @@ Each phase ends with a testable checkpoint. "You provide" lists what's needed **
 
 ## 11. Launch checklist
 
-- [ ] Stripe live keys set in Vercel; live webhook endpoint created and secret updated
-- [ ] Stripe Tax enabled and tax registration status correct; checkout limited to agreed countries
-- [ ] One real low-value purchase made and refunded on live mode
-- [ ] Terms, Privacy, Refunds (digital goods wording), Affiliate disclosure pages published
-- [ ] AI-generated content terms added (ownership/usage, no guarantee of uniqueness, acceptable use)
-- [ ] All Playwright smoke tests pass against production
-- [ ] Lighthouse mobile targets met on production
-- [ ] RLS checked: anon key cannot read orders, generations or events
-- [ ] Anthropic spending limit set
-- [ ] Photo-deletion job (if photo upload shipped) scheduled
-- [ ] Custom domain connected (P1)
+Status after the Phase 7 build (2026-11-11). ✅ done · ⏳ needs you · ➖ not applicable.
+
+**Built and verified**
+- ✅ Terms, Privacy, Refunds (digital-goods wording) and Affiliate disclosure pages published at /terms, /privacy, /refunds, /disclosure, including AI-content terms (ownership and personal-use licence, no guarantee of uniqueness, acceptable use, anonymous gifts).
+- ✅ Retention as stated in the privacy notice: daily Vercel Cron `/api/cron/retention` (CRON_SECRET) deletes unpaid previews and their sample clips after 30 days, analytics events after 2 years, and old rate-limit counters.
+- ✅ RLS checked with the anon key: orders, generations, events, gift_shares, usage tables and ai_summaries unreadable; no inserts; private buckets unlistable; media uploads and limit functions refused.
+- ✅ No secret values in browser bundles; security headers (no framing, nosniff, referrer policy, permissions policy, HSTS).
+- ✅ Error pages: friendly 404 and error page; expired admin sign-in links land on /admin/login with an explanation.
+- ✅ Playwright smoke tests in `tests/e2e` (pages, legal pages, API guards, admin gate): 55 pass on desktop and mobile locally. Opt-in paid journeys (`E2E_JOURNEYS=1`, Stripe test mode): 3 pass.
+- ✅ Accessibility/UX review of the new UI (web-interface guidelines): fixes for error focus, unsaved-change warning, image sizes, native controls on light pages.
+- ➖ Stripe Tax: off by decision (individual seller under the UK VAT threshold). Checkout is open worldwide by decision; get accountant advice on overseas VAT for digital services.
+- ➖ Photo-deletion job: photo upload (P1) not shipped.
+
+**Needs you before launch**
+- ⏳ Seller name, contact email and UK postal address in `lib/site.ts` (`seller`). Legal pages show a "Draft" banner until then.
+- ⏳ Stripe live mode: account activated, live `STRIPE_SECRET_KEY` in Vercel, live webhook to `/api/stripe/webhook` with its `STRIPE_WEBHOOK_SECRET`; one real low-value purchase made and refunded.
+- ⏳ Anthropic spending limit set; ElevenLabs plan confirmed for commercial music use.
+- ✅ Custom domain giftpost.co.uk connected to Vercel (bare domain redirects to www.giftpost.co.uk).
+- ⏳ `NEXT_PUBLIC_SITE_URL=https://www.giftpost.co.uk` in Vercel; Supabase Site URL and Redirect URLs (`https://www.giftpost.co.uk/auth/callback`) updated; Stripe live webhook on the new domain.
+- ⏳ Test orders and placeholder products/gallery items removed from production.
+- ⏳ Smoke tests run against production: `PLAYWRIGHT_BASE_URL=https://www.giftpost.co.uk pnpm test:e2e`.
+- ⏳ Lighthouse mobile targets re-checked on production (99 on 2026-11-09, before the later features).
+- ⏳ Optional: legal pages reviewed by someone qualified.

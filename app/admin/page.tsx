@@ -8,6 +8,7 @@ import { requireAdmin } from "@/lib/admin-auth";
 import { getLatestSummary } from "@/lib/admin/summary";
 import { getStats, type Stats } from "@/lib/admin/stats";
 import { formatPrice } from "@/lib/format";
+import { sellerDetailsMissing } from "@/lib/site";
 
 export const metadata: Metadata = { title: "Dashboard" };
 
@@ -30,6 +31,13 @@ async function Dashboard({ searchParams }: Pick<PageProps<"/admin">, "searchPara
 
   return (
     <AdminShell email={admin.email} current="/admin">
+      {sellerDetailsMissing && (
+        <p role="note" className="mb-6 rounded-md border border-berry/50 bg-white px-4 py-3 font-medium text-berry">
+          Before launch: fill in your name, contact email and postal address in lib/site.ts
+          (<code>seller</code>). The legal pages show them, and show a &ldquo;Draft&rdquo; warning
+          until then.
+        </p>
+      )}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-4xl">How the shop is doing</h1>

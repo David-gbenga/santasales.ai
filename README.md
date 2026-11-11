@@ -1,6 +1,6 @@
 # Giftpost
 
-Giftpost (giftpost.com): personal AI-written cards and sung songs for any occasion (preview free, pay to unlock), digital downloads, a store-links gallery, a gift concierge, and an admin dashboard. See [docs/PRD.md](docs/PRD.md) for requirements and the phased build plan, and [CLAUDE.md](CLAUDE.md) for engineering rules.
+Giftpost (www.giftpost.co.uk): personal AI-written cards and sung songs for any occasion (preview free, pay to unlock), digital downloads, a store-links gallery, a gift concierge, and an admin dashboard. See [docs/PRD.md](docs/PRD.md) for requirements and the phased build plan, and [CLAUDE.md](CLAUDE.md) for engineering rules.
 
 ## Requirements
 

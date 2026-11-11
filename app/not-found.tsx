@@ -9,7 +9,7 @@ export default function NotFound() {
       <h1 className="font-display text-5xl text-frost">This page isn&rsquo;t here</h1>
       <p className="mt-4 text-lg text-frost-muted">
         The link may be old, or the page hasn&rsquo;t been built yet. Head back to the home page to
-        find cards, lyrics and the shop.
+        find cards, songs and the shop.
       </p>
       <div className="mt-8">
         <ButtonLink href="/">Go to the home page</ButtonLink>

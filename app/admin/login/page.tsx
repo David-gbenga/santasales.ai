@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 const ERRORS: Record<string, string> = {
   "not-allowed": "That account can't manage this shop. Sign in with an admin email.",
-  "link-expired": "That sign-in link has expired or was already used. Request a new one.",
+  "link-expired": "That sign-in link has expired or was already used. Sign in with your password, or request a new link.",
 };
 
 export default function AdminLoginPage({ searchParams }: PageProps<"/admin/login">) {

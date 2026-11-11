@@ -17,7 +17,12 @@ export function Field({
   label: string;
   hint?: string;
   error?: string;
-  children: (props: { id: string; "aria-invalid": boolean; "aria-describedby"?: string }) => ReactNode;
+  children: (props: {
+    id: string;
+    "aria-invalid": boolean;
+    "aria-describedby"?: string;
+    autoComplete: "off";
+  }) => ReactNode;
 }) {
   const id = useId();
   const hintId = `${id}-hint`;
@@ -33,7 +38,7 @@ export function Field({
           {hint}
         </p>
       )}
-      {children({ id, "aria-invalid": Boolean(error), "aria-describedby": describedBy })}
+      {children({ id, "aria-invalid": Boolean(error), "aria-describedby": describedBy, autoComplete: "off" })}
       {error && (
         <p id={errorId} className="mt-1 text-sm font-medium text-berry">
           {error}
@@ -170,7 +175,13 @@ export function UploadField({
       <div className="mt-3 flex flex-wrap items-start gap-4">
         {isImage && preview && (
           // eslint-disable-next-line @next/next/no-img-element -- admin preview of an uploaded image
-          <img src={preview} alt="" className="h-28 w-auto rounded-md border border-line-snow bg-white object-contain" />
+          <img
+            src={preview}
+            alt=""
+            width={112}
+            height={112}
+            className="size-28 rounded-md border border-line-snow bg-white object-contain"
+          />
         )}
         <div className="min-w-0 flex-1">
           <input

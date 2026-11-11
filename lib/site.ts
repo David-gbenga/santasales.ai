@@ -5,8 +5,8 @@ import { CARD_PRICE_PENCE, PREVIEW_LIMITS, SONG_PRICE_BY_LENGTH } from "@/lib/pr
 /** Brand and landing-page copy. Name and domain decided 2026-11-11. */
 export const site = {
   name: "Giftpost",
-  /** Production domain. The live URL itself comes from NEXT_PUBLIC_SITE_URL. */
-  domain: "giftpost.com",
+  /** Production domain (giftpost.co.uk redirects to www). The live URL comes from NEXT_PUBLIC_SITE_URL. */
+  domain: "giftpost.co.uk",
   /** Occasion the card and song forms start on. Change with the season. */
   seasonalOccasion: "christmas" as Occasion,
   headline: "Intentional words and songs for your loved ones.",
@@ -16,6 +16,30 @@ export const site = {
   // Static so the page can be fully prerendered (no request-time Date).
   copyrightYear: 2026,
 } as const;
+
+/**
+ * Who sells on Giftpost, as shown on the legal pages. UK law requires the
+ * seller's name, a contact email and a geographic address.
+ *
+ * TODO before launch: replace every value in [square brackets] with your
+ * real details. While any placeholder remains, the legal pages show a
+ * warning banner and the admin dashboard flags it.
+ */
+export const seller = {
+  /** Your full legal name, or "Jane Smith trading as Giftpost". */
+  legalName: "[YOUR LEGAL OR TRADING NAME]",
+  /** Where customers and data-protection requests go. */
+  email: "[CONTACT EMAIL]",
+  /** A UK postal address where you can receive letters. */
+  address: "[UK POSTAL ADDRESS]",
+  /** Update when the terms or privacy notice change. */
+  lastUpdated: "11 November 2026",
+} as const;
+
+/** True while any seller detail is still a [placeholder]. */
+export const sellerDetailsMissing = [seller.legalName, seller.email, seller.address].some((v) =>
+  v.startsWith("["),
+);
 
 export const nav = [
   { href: "/cards", label: "Make a card" },

@@ -7,6 +7,15 @@ import { NextResponse, type NextRequest } from "next/server";
  * optimistic gate: every admin page and route still calls requireAdmin().
  */
 export async function proxy(request: NextRequest) {
+  // Supabase sends a failed or expired admin sign-in link back to the Site
+  // URL with ?error_code=…; show the admin sign-in page with a clear message.
+  if (request.nextUrl.pathname === "/" && request.nextUrl.searchParams.has("error_code")) {
+    const login = request.nextUrl.clone();
+    login.pathname = "/admin/login";
+    login.search = "?error=link-expired";
+    return NextResponse.redirect(login);
+  }
+
   let response = NextResponse.next({ request });
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -35,5 +44,10 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*", "/auth/:path*"],
+  matcher: [
+    "/admin/:path*",
+    "/auth/:path*",
+    // Only the home page with a Supabase auth error, so normal visits skip the proxy.
+    { source: "/", has: [{ type: "query", key: "error_code" }] },
+  ],
 };
