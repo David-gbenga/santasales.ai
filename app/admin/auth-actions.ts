@@ -45,6 +45,36 @@ export async function sendMagicLink(_prev: SignInState, formData: FormData): Pro
   return { status: "sent", message: SENT };
 }
 
+const WRONG_PASSWORD = "That email and password don’t match an admin account.";
+
+/**
+ * Email and password sign-in for allowlisted admins (no email to wait for).
+ * The password is set in the Supabase dashboard, never by this app. One
+ * message covers every failure so the form can’t reveal admin emails.
+ */
+export async function signInWithPassword(
+  _prev: SignInState,
+  formData: FormData,
+): Promise<SignInState> {
+  const parsed = z
+    .object({ email: z.email().max(254), password: z.string().min(1).max(200) })
+    .safeParse({
+      email: String(formData.get("email") ?? "").trim(),
+      password: String(formData.get("password") ?? ""),
+    });
+  if (!parsed.success) return { status: "error", message: "Enter your email and password." };
+  if (!isAdminEmail(parsed.data.email)) return { status: "error", message: WRONG_PASSWORD };
+
+  const supabase = await createAuthClient();
+  const { error } = await supabase.auth.signInWithPassword(parsed.data);
+  if (error) {
+    if (error.status === 429)
+      return { status: "error", message: "Too many attempts. Wait a few minutes, then try again." };
+    return { status: "error", message: WRONG_PASSWORD };
+  }
+  redirect("/admin");
+}
+
 export async function signOut() {
   const supabase = await createAuthClient();
   await supabase.auth.signOut();

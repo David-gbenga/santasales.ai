@@ -16,7 +16,7 @@ export default function AdminLoginPage({ searchParams }: PageProps<"/admin/login
   return (
     <main id="main" className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-4 py-16">
       <h1 className="font-display text-4xl text-frost">Admin sign in</h1>
-      <p className="mt-3 text-frost-muted">We&rsquo;ll email you a one-time sign-in link.</p>
+      <p className="mt-3 text-frost-muted">For shop admins only.</p>
       <Suspense fallback={null}>
         <ErrorNote searchParams={searchParams} />
       </Suspense>
