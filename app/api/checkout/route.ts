@@ -22,16 +22,27 @@ function errorResponse(message: string, status: number) {
 }
 
 /** Settings shared by every Checkout Session. */
-function baseSession(): Pick<
+/**
+ * Settings shared by every Checkout Session. `description` names what was
+ * bought (e.g. "Family Quiz Night"). It becomes the PaymentIntent and charge
+ * description that Stripe reports show. Keep it free of personal data such
+ * as recipient names.
+ */
+function baseSession(description: string): Pick<
   Stripe.Checkout.SessionCreateParams,
-  "mode" | "automatic_tax" | "custom_text"
+  "mode" | "automatic_tax" | "custom_text" | "payment_intent_data"
 > {
   return {
     mode: "payment",
     automatic_tax: { enabled: AUTOMATIC_TAX_ENABLED },
     custom_text: { submit: { message: DIGITAL_CONSENT_TEXT } },
+    payment_intent_data: { description: description.slice(0, 500) },
   };
 }
+
+/** "Personal birthday card", "Personal song", without a double space for "just because". */
+const personalLabel = (adjective: string, noun: string) =>
+  `Personal ${adjective} ${noun}`.replace(/s+/g, " ");
 
 async function checkoutProduct(productId: string, origin: string): Promise<CheckoutResult> {
   const { data: product, error } = await createAdminClient()
@@ -48,7 +59,7 @@ async function checkoutProduct(productId: string, origin: string): Promise<Check
   }
 
   const session = await getStripe().checkout.sessions.create({
-    ...baseSession(),
+    ...baseSession(product.name),
     line_items: [
       {
         quantity: 1,
@@ -93,7 +104,7 @@ async function songSession(
 ): Promise<CheckoutResult> {
   const price = songPricePence(input.length);
   const session = await getStripe().checkout.sessions.create({
-    ...baseSession(),
+    ...baseSession(`${personalLabel(OCCASIONS[toOccasion(input.occasion)].adjective, "song")} (${input.length})`),
     line_items: [
       {
         quantity: 1,
@@ -171,7 +182,7 @@ async function checkoutPreview(generationId: string, origin: string): Promise<Ch
   }
 
   const session = await getStripe().checkout.sessions.create({
-    ...baseSession(),
+    ...baseSession(personalLabel(OCCASIONS[toOccasion(g.input?.occasion)].adjective, "card")),
     line_items: [
       {
         quantity: 1,
@@ -257,7 +268,7 @@ async function checkoutAddon(
   const studio = `${origin}/${parent.kind === "card" ? "cards" : "lyrics"}/${parent.id}`;
 
   const session = await getStripe().checkout.sessions.create({
-    ...baseSession(),
+    ...baseSession("Voice greeting"),
     line_items: [
       {
         quantity: 1,
