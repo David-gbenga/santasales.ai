@@ -42,7 +42,7 @@ function baseSession(description: string): Pick<
 
 /** "Personal birthday card", "Personal song", without a double space for "just because". */
 const personalLabel = (adjective: string, noun: string) =>
-  `Personal ${adjective} ${noun}`.replace(/s+/g, " ");
+  `Personal ${adjective} ${noun}`.replace(/\s+/g, " ");
 
 async function checkoutProduct(productId: string, origin: string): Promise<CheckoutResult> {
   const { data: product, error } = await createAdminClient()
