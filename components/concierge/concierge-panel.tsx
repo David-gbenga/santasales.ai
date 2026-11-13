@@ -83,7 +83,7 @@ export default function ConciergePanel({ open, onClose }: { open: boolean; onClo
       const res = await fetch("/api/concierge", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: toHistory(next) }),
+        body: JSON.stringify({ messages: toHistory(next), page: window.location.pathname }),
       });
       const body: Partial<ConciergeReply> & { error?: string } = await res.json().catch(() => ({}));
       if (!res.ok || !body.reply) throw new Error(body.error ?? "Something went wrong. Try again.");

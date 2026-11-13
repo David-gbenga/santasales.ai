@@ -4,6 +4,7 @@ import { z } from "zod";
 import { claudeModel, getAnthropic } from "@/lib/ai/claude";
 import { conciergeSystemPrompt } from "@/lib/ai/prompts/concierge";
 import { createConciergeTools } from "@/lib/concierge/tools";
+import { loadVisitorContext } from "@/lib/concierge/visitor";
 import { CONCIERGE_LIMITS, type ConciergeReply, type ConciergeWidget } from "@/lib/concierge/types";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { visitorKey } from "@/lib/visitor";
@@ -26,7 +27,18 @@ const requestSchema = z.object({
     .min(1)
     .max(60)
     .refine((m) => m.at(-1)?.role === "user", "last message must be from the visitor"),
+  /** The page the chat was opened on, so Susan can help with what's in front of them. */
+  // An odd path is just dropped: it's a hint, never a reason to refuse the message.
+  page: z.string().max(200).regex(/^\/[\w\-/#]*$/).optional().catch(undefined),
 });
+
+/** Page path with ids removed (studio and gift links contain private ids). */
+function cleanPage(page: string | undefined): string {
+  if (!page) return "unknown";
+  return page
+    .replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, ":id")
+    .replace(/\/gift\/[A-Za-z0-9_-]{16,}/, "/gift/:token");
+}
 
 function errorResponse(message: string, status: number) {
   return NextResponse.json({ error: message }, { status });
@@ -81,14 +93,15 @@ export async function POST(request: Request) {
 
     const widgets: ConciergeWidget[] = [];
     const shown: string[] = [];
+    const visitor = await loadVisitorContext();
     const final = await getAnthropic().beta.messages.toolRunner({
       model: conciergeModel(),
       max_tokens: 2000,
-      system: conciergeSystemPrompt(),
+      system: conciergeSystemPrompt({ page: cleanPage(parsed.data.page), signedIn: visitor.signedIn }),
       messages: normaliseHistory(parsed.data.messages),
-      tools: createConciergeTools(widgets, shown, request),
+      tools: createConciergeTools(widgets, shown, request, visitor),
       output_config: { effort: "low" },
-      max_iterations: 6,
+      max_iterations: 8,
       thread: false, // send the full (short) history each turn; nothing is kept server-side
     });
 
@@ -102,7 +115,9 @@ export async function POST(request: Request) {
         "I can't help with that one, but I'd love to help you find a gift. Who are you shopping for?";
     } else if (!reply) {
       reply = widgets.length
-        ? "Here are a few ideas:"
+        ? widgets.every((w) => w.type === "link")
+          ? "The button below will take you there."
+          : "Here are a few ideas:"
         : "Sorry, I lost my train of thought. Could you say that again?";
     }
 

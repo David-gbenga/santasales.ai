@@ -2,7 +2,8 @@ import "server-only";
 import { betaZodTool } from "@anthropic-ai/sdk/helpers/beta/zod";
 import { z } from "zod";
 import { designSuits, getActiveCardDesigns } from "@/lib/card-designs";
-import type { ConciergeWidget } from "@/lib/concierge/types";
+import { SITE_LINKS, type ConciergeWidget, type SiteLinkKey } from "@/lib/concierge/types";
+import { describeVisitor, type VisitorContext } from "@/lib/concierge/visitor";
 import { formatPrice } from "@/lib/format";
 import { getActiveGalleryItems, storeHost } from "@/lib/gallery";
 import { LYRIC_LENGTH_LABELS, LYRIC_STYLE_LABELS } from "@/lib/lyrics-options";
@@ -71,7 +72,12 @@ export function createConciergeTools(
   widgets: ConciergeWidget[],
   shown: string[],
   request: Request,
+  visitor: VisitorContext,
 ) {
+  const left = (kind: "card" | "song") =>
+    visitor.membership?.state === "active" || visitor.membership?.state === "cancelling"
+      ? (visitor.membership.left?.[kind] ?? 0)
+      : 0;
   const searchGifts = betaZodTool({
     name: "search_gifts",
     description:
@@ -222,9 +228,12 @@ export function createConciergeTools(
         priceLabel: formatPrice(CARD_PRICE_PENCE),
         recipientName: input.data.recipientName,
         input: { ...input.data, relationship: input.data.relationship ?? "" },
+        premium: left("card") > 0,
       });
       shown.push(`card offer for ${input.data.recipientName} (${design.name})`);
-      return `Card offer shown with a free-preview button; the card costs ${formatPrice(CARD_PRICE_PENCE)} if they buy it.`;
+      return left("card") > 0
+        ? `Card offer shown. They're a Premium member with ${left("card")} cards left, so the button makes it straight from their allowance, no payment.`
+        : `Card offer shown with a free-preview button; the card costs ${formatPrice(CARD_PRICE_PENCE)} if they buy it.`;
     },
   });
 
@@ -253,9 +262,12 @@ export function createConciergeTools(
         summary: `${SONG_STYLES[input.data.musicStyle].label} · ${LYRIC_STYLE_LABELS[input.data.style].label} · ${LYRIC_LENGTH_LABELS[input.data.length].hint}`,
         recipientName: input.data.recipientName,
         input: { ...input.data, relationship: input.data.relationship ?? "" },
+        premium: left("song") > 0,
       });
       shown.push(`song offer for ${input.data.recipientName}`);
-      return `Song offer shown with a free-preview button; the song costs ${formatPrice(songPricePence(input.data.length))} if they buy it.`;
+      return left("song") > 0
+        ? `Song offer shown. They're a Premium member with ${left("song")} songs left, so the button makes it straight from their allowance, no payment.`
+        : `Song offer shown with a free-preview button; the song costs ${formatPrice(songPricePence(input.data.length))} if they buy it.`;
     },
   });
 
@@ -277,5 +289,33 @@ export function createConciergeTools(
     },
   });
 
-  return [searchGifts, showProducts, listCardDesigns, offerCard, offerSong, emailOrderLinks];
+
+  const showLink = betaZodTool({
+    name: "show_link",
+    description:
+      "Show a button to a page on this site, e.g. Premium, sign-up, sign-in, My account, password reset, the card or song makers, shop, gallery, terms. Use it whenever you tell someone to go somewhere. At most 2 per reply.",
+    inputSchema: z.object({
+      destination: z.enum(Object.keys(SITE_LINKS) as [SiteLinkKey, ...SiteLinkKey[]]),
+    }),
+    async run({ destination }) {
+      if (widgets.filter((w) => w.type === "link").length >= 2) return "Two links already shown; that's enough.";
+      const link = SITE_LINKS[destination];
+      widgets.push({ type: "link", href: link.href, label: link.label, description: "description" in link ? link.description : undefined });
+      shown.push(`button: ${link.label}`);
+      return `Button "${link.label}" shown below your reply.`;
+    },
+  });
+
+  const myAccount = betaZodTool({
+    name: "my_account",
+    description:
+      "The visitor's own sign-in and GiftPost Premium status: whether they're signed in, email confirmed, membership state, renewal or end date, and allowance left this period. Call before giving account or Premium advice that depends on their situation.",
+    inputSchema: z.object({}),
+    async run() {
+      shown.push("checked their account status");
+      return JSON.stringify(describeVisitor(visitor));
+    },
+  });
+
+  return [searchGifts, showProducts, listCardDesigns, offerCard, offerSong, emailOrderLinks, showLink, myAccount];
 }

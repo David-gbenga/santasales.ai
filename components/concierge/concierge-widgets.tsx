@@ -156,16 +156,36 @@ export function ConciergeWidgetView({ widget }: { widget: ConciergeWidget }) {
           </div>
           <div className="border-t border-line-snow p-3">
             <PayButton
-              label="Write the full card (free preview)"
+              label={widget.premium ? "Write the full card" : "Write the full card (free preview)"}
               endpoint="/api/preview"
               body={{ kind: "card", designSlug: widget.designSlug, input: widget.input }}
               refId={`concierge:card:${widget.designSlug}`}
             />
             <p className="mt-2 text-xs text-ink-muted">
-              See the whole card before paying. Pay {widget.priceLabel} only if you love it.
+              {widget.premium
+                ? "Included in your Premium: it uses one of your cards, ready to finish."
+                : `See the whole card before paying. Pay ${widget.priceLabel} only if you love it.`}
             </p>
           </div>
         </div>
+      );
+
+    case "link":
+      return (
+        <Link
+          href={widget.href}
+          className={`${box} flex items-center justify-between gap-3 p-3 hover:border-ink/40`}
+        >
+          <span className="min-w-0">
+            <span className="block font-semibold">{widget.label}</span>
+            {widget.description && (
+              <span className="block text-sm text-ink-muted">{widget.description}</span>
+            )}
+          </span>
+          <span aria-hidden="true" className="text-lg">
+            &rarr;
+          </span>
+        </Link>
       );
 
     case "song_offer":
@@ -183,13 +203,15 @@ export function ConciergeWidgetView({ widget }: { widget: ConciergeWidget }) {
           </div>
           <div className="border-t border-line-snow p-3">
             <PayButton
-              label="Write the full song (free preview)"
+              label={widget.premium ? "Write the full song" : "Write the full song (free preview)"}
               endpoint="/api/preview"
               body={{ kind: "lyrics", input: widget.input }}
               refId="concierge:song"
             />
             <p className="mt-2 text-xs text-ink-muted">
-              Read it and hear a sung sample before paying. {widget.priceLabel} for the full sung song.
+              {widget.premium
+                ? "Included in your Premium: it uses one of your songs, ready to finish."
+                : `Read it and hear a sung sample before paying. ${widget.priceLabel} for the full sung song.`}
             </p>
           </div>
         </div>

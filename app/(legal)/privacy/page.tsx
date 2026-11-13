@@ -52,9 +52,12 @@ export default function PrivacyPage() {
           </li>
           <li>
             <strong>Gift concierge chat (Susan)</strong>: your messages are sent to our AI provider
-            to answer them. The conversation is kept in your own browser, not on our servers. If
-            you ask Susan to resend your order links, the email address you give is used only to
-            find your orders and send the links to that address.
+            to answer them, with the page you&rsquo;re on. The conversation is kept in your own
+            browser, not on our servers. If you&rsquo;re signed in, Susan can also see your own
+            sign-in and Premium status (for example, how many songs you have left), but not your
+            name, email address or what you&rsquo;ve made. If you ask Susan to resend your order
+            links, the email address you give is used only to find your orders and send the links
+            to that address.
           </li>
           <li>
             <strong>Bootcamp sign-ups</strong>: if you register for our free AI engineering

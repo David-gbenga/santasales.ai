@@ -51,6 +51,8 @@ export type ConciergeWidget =
       priceLabel: string;
       recipientName: string;
       input: CardCheckoutInput;
+      /** The visitor is a Premium member with cards left: no payment needed. */
+      premium?: boolean;
     }
   | {
       type: "song_offer";
@@ -59,6 +61,15 @@ export type ConciergeWidget =
       summary: string;
       recipientName: string;
       input: SongCheckoutInput;
+      /** The visitor is a Premium member with songs left: no payment needed. */
+      premium?: boolean;
+    }
+  | {
+      /** A button to a page on this site (fixed list, see SITE_LINKS). */
+      type: "link";
+      href: string;
+      label: string;
+      description?: string;
     };
 
 export type ConciergeReply = {
@@ -67,6 +78,29 @@ export type ConciergeReply = {
   /** Short note of what was shown, for the client to keep in history so the model remembers it. */
   shownNote: string;
 };
+
+/**
+ * The only places Susan can send people (no free-form URLs), with the
+ * button wording. Keys are what the model chooses from.
+ */
+export const SITE_LINKS = {
+  premium: { href: "/premium", label: "See GiftPost Premium", description: "£25 every 30 days, cancel any time" },
+  signup: { href: "/signup", label: "Create an account", description: "Needed only for Premium" },
+  login: { href: "/login", label: "Sign in" },
+  account: { href: "/account", label: "Go to My account", description: "Membership, your cards and songs" },
+  forgot_password: { href: "/forgot-password", label: "Reset your password" },
+  change_password: { href: "/account/password", label: "Change your password" },
+  make_card: { href: "/cards", label: "Make a card" },
+  write_song: { href: "/lyrics", label: "Write a song" },
+  shop: { href: "/shop", label: "Browse the shop", description: "Printables, instant download" },
+  gallery: { href: "/gallery", label: "See the gallery", description: "Gift ideas from other shops" },
+  premium_terms: { href: "/terms#premium", label: "Premium terms", description: "Renewal, cancelling and refunds" },
+  terms: { href: "/terms", label: "Terms of service" },
+  refunds: { href: "/refunds", label: "Refunds policy" },
+  privacy: { href: "/privacy", label: "Privacy notice" },
+  bootcamp: { href: "/bootcamp", label: "Free AI bootcamp sign-up" },
+} as const;
+export type SiteLinkKey = keyof typeof SITE_LINKS;
 
 export const CONCIERGE_LIMITS = {
   /** Messages a visitor can send per day. */
