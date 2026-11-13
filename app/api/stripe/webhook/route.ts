@@ -1,9 +1,58 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
+import { logAccountEvent } from "@/lib/account";
 import { requireEnv } from "@/lib/env";
 import { sendThankYouForSession } from "@/lib/order-emails";
 import { markOrderPaid, markOrderRefunded } from "@/lib/orders";
 import { getStripe } from "@/lib/stripe";
+import { sendSubscriptionNotice } from "@/lib/subscription-emails";
+import {
+  eventAlreadyHandled,
+  invoiceSubscriptionId,
+  logSubscriptionChange,
+  markEventHandled,
+  syncSubscription,
+} from "@/lib/subscriptions";
+
+const SUBSCRIPTION_EVENTS = new Set<Stripe.Event.Type>([
+  "customer.subscription.created",
+  "customer.subscription.updated",
+  "customer.subscription.deleted",
+  "invoice.paid",
+  "invoice.payment_failed",
+]);
+
+/**
+ * GiftPost Premium events. Each is handled once (stripe_events), and the
+ * subscription is re-read from Stripe rather than trusted from the payload.
+ */
+async function handleSubscriptionEvent(event: Stripe.Event): Promise<void> {
+  if (await eventAlreadyHandled(event.id)) return;
+
+  let subscriptionId: string | null = null;
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    subscriptionId = typeof session.subscription === "string" ? session.subscription : (session.subscription?.id ?? null);
+  } else if (event.type.startsWith("customer.subscription.")) {
+    subscriptionId = (event.data.object as Stripe.Subscription).id;
+  } else if (event.type.startsWith("invoice.")) {
+    subscriptionId = invoiceSubscriptionId(event.data.object as Stripe.Invoice);
+  }
+
+  if (subscriptionId) {
+    const result = await syncSubscription(subscriptionId);
+    if (result) {
+      const change = await logSubscriptionChange(result);
+      if (event.type === "invoice.payment_failed") {
+        await logAccountEvent(result.row.user_id, "payment_failed", { subscription: subscriptionId });
+        await sendSubscriptionNotice(result.row, "payment_failed");
+      } else if (change === "subscription_ended") {
+        await sendSubscriptionNotice(result.row, "ended");
+      }
+    }
+  }
+  await markEventHandled(event);
+}
 
 /**
  * Stripe webhook: the ONLY place an order becomes paid (or refunded). The signature is
@@ -22,7 +71,8 @@ export async function POST(request: Request) {
       requireEnv("STRIPE_WEBHOOK_SECRET"),
     );
   } catch (err) {
-    console.error("[stripe-webhook] signature check failed", err);
+    // Message only: the error object carries the whole payload, customer emails included.
+    console.error("[stripe-webhook] signature check failed", err instanceof Error ? err.message.slice(0, 200) : "unknown");
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
@@ -31,6 +81,10 @@ export async function POST(request: Request) {
       case "checkout.session.completed":
       case "checkout.session.async_payment_succeeded": {
         const session = event.data.object;
+        if (session.mode === "subscription") {
+          await handleSubscriptionEvent(event);
+          break;
+        }
         // Delayed payment methods complete first with payment_status "unpaid";
         // they're marked paid when async_payment_succeeded arrives.
         if (session.payment_status === "paid") {
@@ -52,11 +106,15 @@ export async function POST(request: Request) {
         break;
       }
       default:
+        if (SUBSCRIPTION_EVENTS.has(event.type)) {
+          await handleSubscriptionEvent(event);
+          break;
+        }
         // Other events are acknowledged and ignored.
         break;
     }
   } catch (err) {
-    // 500 makes Stripe retry; markOrderPaid is idempotent, so retries are safe.
+    // 500 makes Stripe retry; markOrderPaid and the subscription sync are idempotent.
     console.error(`[stripe-webhook] handling ${event.type} ${event.id} failed`, err);
     return NextResponse.json({ error: "Webhook handling failed" }, { status: 500 });
   }

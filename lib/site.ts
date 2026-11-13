@@ -46,6 +46,7 @@ export const nav = [
   { href: "/lyrics", label: "Write a song" },
   { href: "/shop", label: "Browse the shop" },
   { href: "/gallery", label: "See the gallery" },
+  { href: "/premium", label: "Premium" },
 ] as const;
 
 export const legalLinks = [

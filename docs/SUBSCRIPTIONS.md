@@ -1,6 +1,6 @@
 # GiftPost Premium: accounts and the £25 subscription (proposal)
 
-Status: **approved, being built** (13 November 2026). Stage A is in progress.
+Status: **approved, being built** (13 November 2026). Stage A is done (7c13381). Stage B (Stripe subscription, webhook, portal, /premium) is done in test mode. Stages C and D are next.
 
 ## Decisions (13 November 2026)
 
