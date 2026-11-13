@@ -6,6 +6,13 @@ import { formatPrice } from "@/lib/format";
 import { getShareFor } from "@/lib/gifts";
 import { VOICE_GREETING_PRICE_PENCE } from "@/lib/pricing";
 import type { Occasion } from "@/lib/occasions";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+/** True when this card or song was made with a Premium membership. */
+async function isPremiumOrder(orderId: string): Promise<boolean> {
+  const { data } = await createAdminClient().from("orders").select("source").eq("id", orderId).maybeSingle();
+  return data?.source === "premium";
+}
 
 function toState(addon: Addon | undefined): AddonState {
   if (!addon || addon.order?.status === "refunded") return null;
@@ -55,7 +62,11 @@ export async function GiftExtras({
   anonymous: boolean;
   occasion: Occasion;
 }) {
-  const [addons, share] = await Promise.all([getAddonsFor(generationId), getShareFor(generationId)]);
+  const [addons, share, premium] = await Promise.all([
+    getAddonsFor(generationId),
+    getShareFor(generationId),
+    isPremiumOrder(orderId),
+  ]);
 
   return (
     <div className="mt-12 grid gap-6 lg:grid-cols-2">
@@ -79,6 +90,7 @@ export async function GiftExtras({
       <VoiceAddon
         parentId={generationId}
         priceLabel={formatPrice(VOICE_GREETING_PRICE_PENCE)}
+        premium={premium}
         addon={toState(addons.voice_greeting)}
         defaultText={defaultGreeting}
       />

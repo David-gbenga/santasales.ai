@@ -11,6 +11,8 @@ import {
   invoiceSubscriptionId,
   logSubscriptionChange,
   markEventHandled,
+  markSubscriptionPaymentRefunded,
+  recordSubscriptionPayment,
   syncSubscription,
 } from "@/lib/subscriptions";
 
@@ -43,6 +45,9 @@ async function handleSubscriptionEvent(event: Stripe.Event): Promise<void> {
     const result = await syncSubscription(subscriptionId);
     if (result) {
       const change = await logSubscriptionChange(result);
+      if (event.type === "invoice.paid") {
+        await recordSubscriptionPayment(event.data.object as Stripe.Invoice, result.row);
+      }
       if (event.type === "invoice.payment_failed") {
         await logAccountEvent(result.row.user_id, "payment_failed", { subscription: subscriptionId });
         await sendSubscriptionNotice(result.row, "payment_failed");
@@ -100,7 +105,8 @@ export async function POST(request: Request) {
         const paymentIntent =
           typeof charge.payment_intent === "string" ? charge.payment_intent : charge.payment_intent?.id;
         if (charge.refunded && paymentIntent) {
-          const matched = await markOrderRefunded(paymentIntent);
+          const matched =
+            (await markOrderRefunded(paymentIntent)) || (await markSubscriptionPaymentRefunded(paymentIntent));
           if (!matched) console.warn("[stripe-webhook] refund for an unknown payment", paymentIntent);
         }
         break;

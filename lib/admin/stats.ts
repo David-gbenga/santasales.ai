@@ -1,8 +1,9 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export type Kind = "product" | "card" | "lyrics" | "song_audio" | "voice_greeting";
+export type Kind = "product" | "card" | "lyrics" | "song_audio" | "voice_greeting" | "premium";
 export const KIND_LABELS: Record<Kind, string> = {
+  premium: "Premium memberships",
   product: "Shop downloads",
   card: "Cards",
   lyrics: "Song lyrics",
@@ -40,6 +41,8 @@ type OrderRow = {
   amount_pence: number;
   paid_at: string;
   stripe_session_id: string;
+  /** Stripe test-mode payment. */
+  test?: boolean;
   product: { name: string } | null;
   generation: { design_id: string | null } | null;
 };
@@ -60,13 +63,16 @@ export async function getStats(
   const db = createAdminClient();
   const since = new Date(now.getTime() - rangeDays * 24 * 60 * 60 * 1000);
 
-  const [ordersRes, eventsRes, galleryRes, designsRes] = await Promise.all([
+  const [ordersRes, eventsRes, galleryRes, designsRes, membershipRes] = await Promise.all([
     db
       .from("orders")
       .select(
         "kind, amount_pence, paid_at, stripe_session_id, product:products(name), generation:generations(design_id)",
       )
       .eq("status", "paid")
+      // Premium cards and songs are £0 orders covered by a membership: the
+      // membership payments below are the revenue, so they're left out here.
+      .eq("source", "checkout")
       .gte("paid_at", since.toISOString())
       .returns<OrderRow[]>(),
     db
@@ -77,13 +83,27 @@ export async function getStats(
       .returns<EventRow[]>(),
     db.from("gallery_items").select("id, title, is_affiliate"),
     db.from("card_designs").select("slug, name"),
+    db
+      .from("subscription_payments")
+      .select("stripe_invoice_id, amount_pence, paid_at, livemode")
+      .is("refunded_at", null)
+      .gte("paid_at", since.toISOString()),
   ]);
-  for (const r of [ordersRes, eventsRes, galleryRes, designsRes]) {
+  for (const r of [ordersRes, eventsRes, galleryRes, designsRes, membershipRes]) {
     if (r.error) throw new Error(`Loading stats failed: ${r.error.message}`);
   }
 
-  const allOrders = ordersRes.data ?? [];
-  const isTest = (o: OrderRow) => o.stripe_session_id.startsWith("cs_test_");
+  const memberships: OrderRow[] = (membershipRes.data ?? []).map((p) => ({
+    kind: "premium",
+    amount_pence: p.amount_pence as number,
+    paid_at: p.paid_at as string,
+    stripe_session_id: p.stripe_invoice_id as string,
+    test: !p.livemode,
+    product: null,
+    generation: null,
+  }));
+  const allOrders = [...(ordersRes.data ?? []), ...memberships];
+  const isTest = (o: OrderRow) => o.test ?? o.stripe_session_id.startsWith("cs_test_");
   const orders = liveOnly ? allOrders.filter((o) => !isTest(o)) : allOrders;
   const events = eventsRes.data ?? [];
 

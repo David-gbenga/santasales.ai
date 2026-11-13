@@ -243,3 +243,45 @@ export function invoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
   if (!sub) return null;
   return typeof sub === "string" ? sub : sub.id;
 }
+
+/** Records a paid membership invoice for the admin revenue figures. Idempotent. */
+export async function recordSubscriptionPayment(invoice: Stripe.Invoice, row: SubscriptionRow | null): Promise<void> {
+  if (!invoice.amount_paid) return;
+  const { error } = await createAdminClient()
+    .from("subscription_payments")
+    .upsert(
+      {
+        stripe_invoice_id: invoice.id,
+        subscription_id: row?.id ?? null,
+        amount_pence: invoice.amount_paid,
+        currency: invoice.currency,
+        billing_reason: invoice.billing_reason,
+        livemode: invoice.livemode,
+        paid_at: iso(invoice.status_transitions?.paid_at ?? invoice.created)!,
+      },
+      { onConflict: "stripe_invoice_id", ignoreDuplicates: true },
+    );
+  if (error) throw new Error(`Recording subscription payment failed: ${error.message}`);
+}
+
+/**
+ * Marks a refunded membership payment (full refunds only, as for orders).
+ * Returns false when the payment wasn't a membership invoice.
+ */
+export async function markSubscriptionPaymentRefunded(paymentIntentId: string): Promise<boolean> {
+  const payments = await getStripe().invoicePayments.list({
+    payment: { type: "payment_intent", payment_intent: paymentIntentId },
+    limit: 1,
+  });
+  const invoice = payments.data[0]?.invoice;
+  const invoiceId = typeof invoice === "string" ? invoice : invoice?.id;
+  if (!invoiceId) return false;
+  const { data, error } = await createAdminClient()
+    .from("subscription_payments")
+    .update({ refunded_at: new Date().toISOString() })
+    .eq("stripe_invoice_id", invoiceId)
+    .is("refunded_at", null)
+    .select("stripe_invoice_id");
+  if (error) throw new Error(`Marking subscription payment refunded failed: ${error.message}`);
+  return (data ?? []).length > 0;
+}

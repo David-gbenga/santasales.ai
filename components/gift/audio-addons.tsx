@@ -234,11 +234,14 @@ function PaidSong({ addon }: { addon: NonNullable<AddonState> }) {
 export function VoiceAddon({
   parentId,
   priceLabel,
+  premium = false,
   addon,
   defaultText,
 }: {
   parentId: string;
   priceLabel: string;
+  /** Made with Premium: the greeting comes out of the member's allowance (Stripe if it's used up). */
+  premium?: boolean;
   addon: AddonState;
   defaultText: string;
 }) {
@@ -318,7 +321,13 @@ export function VoiceAddon({
             }}
             className={`${primary} mt-5`}
           >
-            {busy ? "Opening checkout…" : `Pay ${priceLabel} and record it`}
+            {busy
+              ? premium
+                ? "Setting it up…"
+                : "Opening checkout…"
+              : premium
+                ? "Record it with Premium"
+                : `Pay ${priceLabel} and record it`}
           </button>
           {error && (
             <p role="alert" className="mt-2 font-medium text-berry">

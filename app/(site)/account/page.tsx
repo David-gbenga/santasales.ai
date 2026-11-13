@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { ProfileForm } from "@/components/account/account-forms";
 import { requireCustomer } from "@/lib/account";
+import { OCCASIONS, toOccasion } from "@/lib/occasions";
+import { getCreations, type Creation } from "@/lib/premium";
 import {
   getAllowance,
   getSubscription,
@@ -91,6 +93,7 @@ async function Account({ searchParams }: Pick<PageProps<"/account">, "searchPara
       )}
 
       <Membership subscription={subscription} />
+      <Creations creations={await getCreations(customer.id)} />
 
       <section aria-labelledby="details" className="mt-6 rounded-2xl border border-line-snow bg-white/60 p-6 sm:p-8">
         <h2 id="details" className="font-display text-2xl">Your details</h2>
@@ -204,6 +207,45 @@ async function Membership({ subscription }: { subscription: SubscriptionRow | nu
       <p className="mt-3 text-sm text-ink-muted">
         Card details, invoices and cancelling are handled on Stripe&rsquo;s secure billing page.
       </p>
+    </section>
+  );
+}
+
+function Creations({ creations }: { creations: Creation[] }) {
+  if (!creations.length) return null;
+  return (
+    <section aria-labelledby="creations" className="mt-6 rounded-2xl border border-line-snow bg-white/60 p-6 sm:p-8">
+      <h2 id="creations" className="font-display text-2xl">Your cards and songs</h2>
+      <p className="mt-2 text-ink-muted">
+        Open one to finish it, download it or send it as a gift. Downloads are available for 30 days
+        after you make it.
+      </p>
+      <ul className="mt-5 divide-y divide-line-snow">
+        {creations.map((c) => (
+          <li key={c.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+            <div className="min-w-0">
+              <p className="font-medium">
+                {OCCASIONS[toOccasion(c.occasion)].label} {c.kind === "card" ? "card" : "song"}
+                {c.recipientName ? ` for ${c.recipientName}` : ""}
+              </p>
+              <p className="text-sm text-ink-muted">
+                {formatDate(c.createdAt)} · {c.finished ? "Finished" : "In progress"}
+              </p>
+            </div>
+            <Link
+              href={`/${c.kind === "card" ? "cards" : "lyrics"}/${c.id}`}
+              className="inline-flex min-h-11 items-center rounded-full border border-ink/30 px-5 font-semibold hover:border-ink"
+            >
+              {c.finished ? "Open" : "Continue"}
+              <span className="sr-only">
+                {" "}
+                {c.kind === "card" ? "card" : "song"}
+                {c.recipientName ? ` for ${c.recipientName}` : ""}
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
+import { currentCustomer } from "@/lib/account";
 import { getAddonsFor } from "@/lib/addons";
 import { siteUrl } from "@/lib/env";
 import { OCCASIONS, toOccasion } from "@/lib/occasions";
 import { createPendingOrder } from "@/lib/orders";
+import { claimPremium, createPremiumOrder, releasePremium } from "@/lib/premium";
 import {
   CARD_PRICE_PENCE,
   CURRENCY,
@@ -215,6 +217,7 @@ type ParentRow = {
   id: string;
   kind: string;
   locked: boolean;
+  user_id: string | null;
   input: { recipientName?: string } | null;
   orders: { status: string }[];
 };
@@ -231,7 +234,7 @@ async function checkoutAddon(
   const db = createAdminClient();
   const { data: parent, error } = await db
     .from("generations")
-    .select("id, kind, locked, input, orders(status)")
+    .select("id, kind, locked, user_id, input, orders(status)")
     .eq("id", request.parentGenerationId)
     .maybeSingle<ParentRow>();
   if (error) throw new Error(error.message);
@@ -256,16 +259,36 @@ async function checkoutAddon(
     return { error: "You've already added this. Scroll down to play it.", status: 409 };
   }
 
+  const studio = `${origin}/${parent.kind === "card" ? "cards" : "lyrics"}/${parent.id}`;
+
+  // Premium members: a voice greeting on their own card or song comes out of
+  // the allowance, with no payment step.
+  const customer = await currentCustomer();
+  const claim =
+    customer && parent.user_id === customer.id ? await claimPremium(customer, "voice_greeting") : null;
+
   const { data: addon, error: insertError } = await db
     .from("generations")
-    .insert({ kind: request.kind, parent_id: parent.id, input: request.input })
+    .insert({ kind: request.kind, parent_id: parent.id, input: request.input, user_id: claim?.userId ?? null })
     .select("id")
     .single();
-  if (insertError) throw new Error(`Creating add-on failed: ${insertError.message}`);
+  if (insertError) {
+    if (claim) await releasePremium(claim);
+    throw new Error(`Creating add-on failed: ${insertError.message}`);
+  }
+  if (claim) {
+    try {
+      await createPremiumOrder(claim, addon.id, "voice_greeting");
+    } catch (err) {
+      await releasePremium(claim);
+      await db.from("generations").delete().eq("id", addon.id);
+      throw err;
+    }
+    return { url: studio };
+  }
 
   const recipient = parent.input?.recipientName ?? "them";
   const price = VOICE_GREETING_PRICE_PENCE;
-  const studio = `${origin}/${parent.kind === "card" ? "cards" : "lyrics"}/${parent.id}`;
 
   const session = await getStripe().checkout.sessions.create({
     ...baseSession("Voice greeting"),
