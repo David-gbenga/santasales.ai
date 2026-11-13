@@ -32,6 +32,16 @@ export default function PrivacyPage() {
             don&rsquo;t send marketing emails.
           </li>
           <li>
+            <strong>Your account</strong>, if you create one for GiftPost Premium: your name and
+            email address, and your password, which our sign-in provider stores only in scrambled
+            (hashed) form, so nobody can read it. We also keep your membership details from Stripe
+            (status, dates, payments and Stripe&rsquo;s customer reference; never your card
+            details), how much of your allowance you&rsquo;ve used, the cards and songs you&rsquo;ve
+            made, and a record of changes to your account and membership. We use these to run your
+            account and membership, email you about them (for example, if a payment fails) and keep
+            tax records (performing our contract with you, and legal obligation).
+          </li>
+          <li>
             <strong>What you type</strong> to make a card or song: names, who they are to you, your
             description, tone and music choices. We use it only to write, record and deliver that
             card or song (performing our contract, or taking steps at your request before it).
@@ -65,8 +75,9 @@ export default function PrivacyPage() {
             affordable).
           </li>
           <li>
-            <strong>Shop admins</strong> sign in with their email address; a sign-in cookie keeps
-            them signed in. Visitors get no cookies.
+            <strong>Signing in</strong>: if you have an account (and for shop admins), a strictly
+            necessary sign-in cookie keeps you signed in. Visitors who don&rsquo;t sign in get no
+            cookies.
           </li>
         </List>
       </Section>
@@ -96,12 +107,12 @@ export default function PrivacyPage() {
             the lyrics or greeting words.
           </li>
           <li>
-            <strong>Resend</strong> (order emails): receives your email address and the order
-            links we send you.
+            <strong>Resend</strong> (order and account emails): receives your email address and
+            the links or notices we send you.
           </li>
           <li>
-            <strong>Supabase</strong> (database, file storage and admin sign-in), with data stored
-            in London.
+            <strong>Supabase</strong> (database, file storage and account sign-in), with data
+            stored in London.
           </li>
           <li>
             <strong>Vercel</strong> (website hosting).
@@ -125,6 +136,11 @@ export default function PrivacyPage() {
             <strong>Orders and the cards and songs you bought</strong> are kept for up to six years
             after the end of the tax year, to meet tax record-keeping rules, then deleted. Download
             access ends after 30 days, and you can ask us to delete the content itself sooner.
+          </li>
+          <li>
+            <strong>Accounts</strong> are kept while your account is open. Email us to close it and
+            we&rsquo;ll delete your account, keeping only the payment records tax law requires (as
+            for orders, above).
           </li>
           <li>
             <strong>Site statistics</strong> are kept for up to two years.

@@ -82,6 +82,6 @@ test("admin pages need a signed-in admin", async ({ page }) => {
 
 test("an expired sign-in link explains what happened", async ({ page }) => {
   await page.goto("/?error=access_denied&error_code=otp_expired");
-  await expect(page).toHaveURL(/\/admin\/login\?error=link-expired/);
-  await expect(page.getByText("That sign-in link has expired")).toBeVisible();
+  await expect(page).toHaveURL(/\/login\?error=link-expired/);
+  await expect(page.getByText("That link has expired or was already used")).toBeVisible();
 });

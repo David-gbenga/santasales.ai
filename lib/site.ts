@@ -33,7 +33,7 @@ export const seller = {
   /** A UK postal address where you can receive letters. */
   address: "12B Southchurch Road, Southend-on-Sea, SS1 2NE",
   /** Update when the terms or privacy notice change. */
-  lastUpdated: "11 November 2026",
+  lastUpdated: "13 November 2026",
 } as const;
 
 /** True while any seller detail is still a [placeholder]. */
@@ -86,7 +86,7 @@ export const cardSteps = [
 export const faqs = [
   {
     q: "Do I need an account?",
-    a: "No. You pay with Stripe and we link your order to your email address and order number.",
+    a: "No. You pay with Stripe and we link your order to your email address and order number. You only need an account for GiftPost Premium, our optional £25 membership for making lots of cards and songs.",
   },
   {
     q: "Can I see it before I pay?",

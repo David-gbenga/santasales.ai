@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { LegalPage, List, Section, SellerDetails } from "@/components/ui/legal-page";
 import { MAX_REGENERATIONS } from "@/lib/pricing";
 import { site } from "@/lib/site";
@@ -25,6 +26,19 @@ export default function RefundsPage() {
           That&rsquo;s why cards and songs come with a free preview and a free re-write before you
           pay, and {MAX_REGENERATIONS} more versions plus editing after you pay. Please use them to
           get it right.
+        </p>
+      </Section>
+
+      <Section id="premium" title="GiftPost Premium">
+        <p>
+          You can cancel your membership at any time in My account, and you keep Premium until the
+          end of the period you&rsquo;ve paid for. Within 14 days of first joining, you can also
+          ask for a refund: in full if you haven&rsquo;t made anything with Premium yet, otherwise
+          for the share of the allowance you haven&rsquo;t used. The details are in{" "}
+          <Link href="/terms#premium" className="underline underline-offset-4">
+            section 12 of our terms
+          </Link>
+          .
         </p>
       </Section>
 

@@ -1,6 +1,6 @@
-# GiftPost Premium: accounts and the £25 subscription (proposal)
+# GiftPost Premium: accounts and the £25 subscription
 
-Status: **approved, being built** (13 November 2026). Stage A is done (7c13381). Stage B (Stripe subscription, webhook, portal, /premium) is done in test mode (12a100c). Stage C (members use their allowance, creation history, membership revenue in admin) is done. Stage D is next.
+Status: **approved, being built** (13 November 2026). Stage A is done (7c13381). Stage B (Stripe subscription, webhook, portal, /premium) is done in test mode (12a100c). Stage C (members use their allowance, creation history, membership revenue in admin) is done (0ddbad2). Stage D (legal text, FAQ, smoke tests, launch checklist) is done. Section 6 lists what the owner must set up before launch.
 
 ## Decisions (13 November 2026)
 
@@ -130,3 +130,56 @@ This is roughly 2–3 days of work.
 4. **Song lengths:** do all lengths, long included, come out of the same song allowance?
 5. **Refunds within 14 days:** the standard approach is to ask for immediate access, so the cancellation right is lost once the subscriber has used the allowance, and to refund in full if nothing has been used. Is that your policy?
 6. **Email delivery (your setup):** a Resend account with giftpost.co.uk verified, `RESEND_API_KEY` set in Vercel, and Resend's SMTP details entered in Supabase (Authentication → SMTP). In Supabase, also turn on **Confirm email** and add `https://www.giftpost.co.uk/auth/callback` to the redirect URLs.
+
+## 5. As built (13 November 2026)
+
+| Piece | Where |
+|---|---|
+| Schema | `supabase/migrations/20261113090000_premium_accounts.sql`, `20261113150000_subscription_payments.sql` (both applied to production) |
+| Accounts | `app/(site)/{signup,login,forgot-password,account}`, `app/(site)/account/actions.ts`, `lib/account.ts`, `app/auth/callback/route.ts`, `proxy.ts` |
+| Subscription | `app/(site)/premium/{page,actions}.ts(x)`, `lib/subscriptions.ts`, `lib/subscription-emails.ts`, webhook branches in `app/api/stripe/webhook/route.ts` |
+| Allowance | `lib/premium.ts` (`claimPremium`, `createPremiumOrder`), used by `app/api/preview/route.ts` and the voice-greeting path in `app/api/checkout/route.ts` |
+| Admin | `lib/admin/stats.ts`: "Premium memberships" revenue from `subscription_payments`; premium £0 orders excluded from order counts |
+| Legal | Terms section 12 (`/terms#premium`), refunds "GiftPost Premium", privacy "Your account" and account retention |
+| Stripe setup | `scripts/stripe-premium-price.mjs` (price by lookup key `giftpost_premium_30d`, Customer Portal configuration) |
+
+No new environment variables or dependencies were added. The app finds the price by its lookup key and the portal by its metadata.
+
+**Access rule.** A member has access only when the status is `active` or `trialing` **and** `now < current_period_end`. This is checked in `hasAccess()` and, for every item made, inside `entitlement_take` in the database.
+
+**Change from the defaults.** The terms offer a **proportionate** refund within 14 days if some of the allowance has been used, rather than no refund. This is the safer reading of the UK cancellation rules for services that start straight away. If you prefer "full refund only if nothing was made", change the "Your 14-day right to cancel" bullet in terms section 12 and the refunds page. This is not legal advice; please have the text checked.
+
+### Testing that was run
+- Account flows: 31 scripted checks against a local production build and the real Supabase project, using throwaway users that were deleted afterwards.
+- Subscription lifecycle: 40 checks in Stripe test mode, with a test clock for renewal, failed payment and expiry. Real Stripe events were delivered to the local webhook with valid signatures, because the Stripe CLI isn't installed here.
+- Allowance, guests and admin revenue: 27 checks.
+- `tests/e2e/premium.spec.ts`: production-safe smoke tests for the new pages and forms.
+- Not automated: entering a card on Stripe's hosted Checkout page, because it sits behind an invisible hCaptcha. Those payments were made through the Stripe API for the same customer and price.
+
+## 6. Launch checklist (owner)
+
+1. **Supabase → Authentication:**
+   - Turn on **Confirm email**.
+   - Under **SMTP**, enter Resend's SMTP details (host `smtp.resend.com`, user `resend`, password = a Resend API key) and a sender on giftpost.co.uk.
+   - Under **URL configuration**, make sure `https://www.giftpost.co.uk/auth/callback` is an allowed redirect URL.
+   - Under **Email templates**, set the links to:
+     - Confirm signup: `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email&next=/account`
+     - Reset password: `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=recovery&next=/account/password`
+
+     This keeps links working when they're opened on a different device or browser.
+2. **Resend:** create the account, verify giftpost.co.uk, and set `RESEND_API_KEY` in Vercel. Payment-failed and membership-ended emails use it.
+3. **Stripe, live mode:** put the live secret key in a local file such as `.env.live` (never commit it), then run `node scripts/stripe-premium-price.mjs .env.live`. That file needs `NEXT_PUBLIC_SITE_URL=https://www.giftpost.co.uk` too.
+4. **Stripe webhook** (live endpoint `https://www.giftpost.co.uk/api/stripe/webhook`): add these events:
+   - `customer.subscription.created`
+   - `customer.subscription.updated`
+   - `customer.subscription.deleted`
+   - `invoice.paid`
+   - `invoice.payment_failed`
+
+   Keep the existing ones: `checkout.session.completed`, `checkout.session.async_payment_succeeded` and `charge.refunded`.
+5. **Stripe → Billing settings:**
+   - Under **Subscriptions → Manage failed payments**: turn on Smart Retries, and choose to **cancel** the subscription when all retries fail.
+   - Under **Customer emails**: turn on receipts. Turning on upcoming-renewal reminders is recommended; they're good practice for UK subscription rules.
+6. **Check the legal text** (section 12 of the terms, refunds, privacy), and the DMCC Act 2024 subscription-rule start date.
+7. **Deploy** (push to `main`), then run `PLAYWRIGHT_BASE_URL=https://www.giftpost.co.uk pnpm test:e2e`.
+8. **Live check:** subscribe once with a real card, check My account shows Active, cancel in the portal, then refund yourself in Stripe.

@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage, List, Section, SellerDetails } from "@/components/ui/legal-page";
-import { MAX_REGENERATIONS, PREVIEW_LIMITS } from "@/lib/pricing";
+import { formatPrice } from "@/lib/format";
+import {
+  MAX_REGENERATIONS,
+  PREMIUM_ALLOWANCE,
+  PREMIUM_INTERVAL_DAYS,
+  PREMIUM_PRICE_PENCE,
+  PREVIEW_LIMITS,
+} from "@/lib/pricing";
 import { seller, site } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -43,6 +50,14 @@ export default function TermsPage() {
           <li>
             <strong>Voice greetings</strong>: a short spoken message in a computer-generated
             voice, added to a card or song.
+          </li>
+          <li>
+            <strong>GiftPost Premium</strong>: an optional membership for making cards, songs and
+            voice greetings, described in{" "}
+            <a href="#premium" className="underline underline-offset-4">
+              section 12
+            </a>
+            . You don&rsquo;t need an account or a membership to buy anything else.
           </li>
         </List>
         <p>
@@ -210,6 +225,61 @@ export default function TermsPage() {
           elsewhere in the UK or abroad, you keep any consumer protections your local law gives
           you, and you can bring a claim in your local courts.
         </p>
+      </Section>
+
+      <Section id="premium" title="12. GiftPost Premium membership">
+        <List>
+          <li>
+            <strong>What you get.</strong> GiftPost Premium costs {formatPrice(PREMIUM_PRICE_PENCE)}{" "}
+            every {PREMIUM_INTERVAL_DAYS} days. In each {PREMIUM_INTERVAL_DAYS}-day period you can
+            make up to {PREMIUM_ALLOWANCE.song} personal songs (any length),{" "}
+            {PREMIUM_ALLOWANCE.card} personal cards and {PREMIUM_ALLOWANCE.voice_greeting} voice
+            greetings on your own cards and songs. Each one comes with the same rewrites, editing
+            and downloads as buying it on its own. Anything you don&rsquo;t use in a period
+            doesn&rsquo;t carry over. Once you&rsquo;ve used a period&rsquo;s allowance, you can
+            still buy cards and songs at the normal prices.
+          </li>
+          <li>
+            <strong>Your account.</strong> Premium needs an account with a confirmed email address.
+            Keep your password private and don&rsquo;t share your account; the allowance is for
+            your own gifts. Sections 6 to 9 apply to everything you make with Premium.
+          </li>
+          <li>
+            <strong>Payment and renewal.</strong> You pay through Stripe when you join, and your
+            membership <strong>renews automatically every {PREMIUM_INTERVAL_DAYS} days</strong> at
+            the same price, charged to the same card, until you cancel. Stripe emails you a receipt
+            for each payment. If we ever change the price, we&rsquo;ll email you at least 30 days
+            before it applies, and you can cancel before then.
+          </li>
+          <li>
+            <strong>Cancelling.</strong> You can cancel at any time in{" "}
+            <Link href="/account" className="underline underline-offset-4">
+              My account
+            </Link>{" "}
+            (&ldquo;Manage or cancel subscription&rdquo;). Your membership then stops renewing and
+            you keep Premium until the end of the period you&rsquo;ve already paid for. We
+            don&rsquo;t refund part-used periods, except as below or where the law requires it.
+          </li>
+          <li>
+            <strong>Your 14-day right to cancel.</strong> When you join, you ask for Premium to
+            start straight away. You can still cancel within 14 days of first joining by emailing
+            us. If you haven&rsquo;t made anything with Premium yet, we refund you in full. If you
+            have, we refund the share of your first payment that matches the allowance you
+            haven&rsquo;t used.
+          </li>
+          <li>
+            <strong>If a payment fails.</strong> Stripe will try your card again over the following
+            days. Premium is paused until a payment succeeds, and we&rsquo;ll email you so you can
+            update your card in My account. If the payment still can&rsquo;t be taken, your
+            membership ends.
+          </li>
+          <li>
+            <strong>When it ends.</strong> Cards and songs you&rsquo;ve already made stay in My
+            account, and their downloads stay available for 30 days after you made each one. We may
+            end a membership that breaks section 7 or is used to resell our service; if we end it
+            for any other reason, we refund the unused part of the current period.
+          </li>
+        </List>
       </Section>
     </LegalPage>
   );

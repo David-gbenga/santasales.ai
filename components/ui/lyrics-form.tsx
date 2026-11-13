@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useId, useState, type FormEvent } from "react";
 import { AnonymousField, OccasionField } from "@/components/ui/occasion-fields";
 import { OwnWordsField } from "@/components/ui/own-words-field";
@@ -232,6 +233,12 @@ export function LyricsForm({
         <p className="mt-3 text-sm text-ink-muted">
           We&rsquo;ll write the lyrics and record a 15-second sample first. Love it? Pay{" "}
           {lengthPrices[length]} for the full sung song and downloads.
+        </p>
+        <p className="mt-1 text-sm text-ink-muted">
+          <Link href="/premium" className="underline underline-offset-4">
+            Premium members
+          </Link>
+          : sign in first and it comes straight out of your allowance, ready to finish.
         </p>
         <p id={errorId} role="alert" className="mt-3 min-h-6 font-medium text-berry">
           {error}

@@ -44,6 +44,15 @@ async function SignInWithParams({ searchParams }: Pick<PageProps<"/login">, "sea
   return (
     <>
       {message && <ErrorBanner message={message} />}
+      {sp.error === "link-expired" && (
+        <p className="-mt-3 mb-6 text-sm text-ink-muted">
+          Shop admin?{" "}
+          <Link href="/admin/login" className="font-semibold text-ink underline underline-offset-4">
+            Use the admin sign-in
+          </Link>
+          .
+        </p>
+      )}
       <SignInForm next={accountNextSchema.parse(sp.next)} />
     </>
   );
