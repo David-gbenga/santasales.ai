@@ -28,6 +28,14 @@ export function SiteHeader() {
                 </Link>
               </li>
             ))}
+            <li>
+              <Link
+                href="/account"
+                className="inline-flex min-h-11 items-center rounded-full border border-frost-muted/40 px-3 text-frost transition-colors hover:border-frost"
+              >
+                My account
+              </Link>
+            </li>
           </ul>
         </nav>
       </div>

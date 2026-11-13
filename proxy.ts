@@ -2,16 +2,17 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Keeps the admin's Supabase session cookies fresh on /admin and /auth
+ * Keeps Supabase session cookies fresh on /admin, /account and /auth
  * requests (Server Components can't write cookies). This is only an
- * optimistic gate: every admin page and route still calls requireAdmin().
+ * optimistic gate: every admin page and route still calls requireAdmin(),
+ * and account pages call requireCustomer().
  */
 export async function proxy(request: NextRequest) {
-  // Supabase sends a failed or expired admin sign-in link back to the Site
-  // URL with ?error_code=…; show the admin sign-in page with a clear message.
+  // Supabase sends a failed or expired email link back to the Site URL with
+  // ?error_code=…; show the sign-in page with a clear message.
   if (request.nextUrl.pathname === "/" && request.nextUrl.searchParams.has("error_code")) {
     const login = request.nextUrl.clone();
-    login.pathname = "/admin/login";
+    login.pathname = "/login";
     login.search = "?error=link-expired";
     return NextResponse.redirect(login);
   }
@@ -34,6 +35,12 @@ export async function proxy(request: NextRequest) {
 
   const { data } = await supabase.auth.getUser();
   const path = request.nextUrl.pathname;
+  if (!data.user && path.startsWith("/account")) {
+    const login = request.nextUrl.clone();
+    login.pathname = "/login";
+    login.search = `?next=${encodeURIComponent(path)}`;
+    return NextResponse.redirect(login);
+  }
   if (!data.user && path.startsWith("/admin") && !path.startsWith("/admin/login")) {
     const login = request.nextUrl.clone();
     login.pathname = "/admin/login";
@@ -47,6 +54,8 @@ export const config = {
   matcher: [
     "/admin/:path*",
     "/auth/:path*",
+    "/account/:path*",
+    "/premium",
     // Only the home page with a Supabase auth error, so normal visits skip the proxy.
     { source: "/", has: [{ type: "query", key: "error_code" }] },
   ],

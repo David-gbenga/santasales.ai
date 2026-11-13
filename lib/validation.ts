@@ -273,3 +273,30 @@ export const bootcampRegistrationSchema = z.object({
   website: z.string().max(200).optional(),
 });
 export type BootcampRegistration = z.infer<typeof bootcampRegistrationSchema>;
+
+// ---------------------------------------------------------------------------
+// Customer accounts (GiftPost Premium, docs/SUBSCRIPTIONS.md)
+// ---------------------------------------------------------------------------
+
+export const fullNameSchema = z.string().trim().min(1, "Enter your name").max(80, "Use 80 characters or fewer");
+export const accountEmailSchema = z.email("Enter a valid email address").max(254);
+/** 10+ characters; bcrypt (Supabase) reads at most 72 bytes, so cap there. */
+export const newPasswordSchema = z
+  .string()
+  .min(10, "Use at least 10 characters")
+  .refine((p) => new TextEncoder().encode(p).length <= 72, "Use 72 characters or fewer");
+
+export const signUpSchema = z.object({
+  fullName: fullNameSchema,
+  email: accountEmailSchema,
+  password: newPasswordSchema,
+});
+export const signInSchema = z.object({
+  email: accountEmailSchema,
+  password: z.string().min(1, "Enter your password").max(200),
+});
+/** Only same-site account paths may be used as a post-sign-in destination (no open redirects). */
+export const accountNextSchema = z
+  .string()
+  .regex(/^\/(account|premium|cards|lyrics)(\/[\w-]*)*$/)
+  .catch("/account");
