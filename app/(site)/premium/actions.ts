@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { currentCustomer } from "@/lib/account";
 import { siteUrl } from "@/lib/env";
+import { PREMIUM_PLAN_KEYS, type PremiumPlan } from "@/lib/pricing";
 import { getStripe, PREMIUM_CONSENT_TEXT } from "@/lib/stripe";
 import {
   getSubscription,
@@ -16,7 +17,9 @@ import {
  * activated here: the subscription only counts once the verified Stripe
  * webhook has stored it.
  */
-export async function startSubscription(): Promise<void> {
+export async function startSubscription(formData: FormData): Promise<void> {
+  const requested = formData.get("plan");
+  const plan: PremiumPlan = PREMIUM_PLAN_KEYS.includes(requested as PremiumPlan) ? (requested as PremiumPlan) : "monthly";
   const customer = await currentCustomer();
   if (!customer) redirect("/login?next=/premium");
   if (!customer.emailConfirmed) redirect("/premium?error=confirm-email");
@@ -42,10 +45,13 @@ export async function startSubscription(): Promise<void> {
       mode: "subscription",
       customer: stripeCustomer,
       client_reference_id: customer.id,
-      line_items: [{ price: await premiumPriceId(), quantity: 1 }],
-      subscription_data: { metadata: { user_id: customer.id }, description: "GiftPost Premium" },
-      metadata: { kind: "premium", user_id: customer.id },
-      custom_text: { submit: { message: PREMIUM_CONSENT_TEXT } },
+      line_items: [{ price: await premiumPriceId(plan), quantity: 1 }],
+      subscription_data: {
+        metadata: { user_id: customer.id, plan },
+        description: plan === "yearly" ? "GiftPost Premium (yearly)" : "GiftPost Premium",
+      },
+      metadata: { kind: "premium", user_id: customer.id, plan },
+      custom_text: { submit: { message: PREMIUM_CONSENT_TEXT[plan] } },
       success_url: `${origin}/account?subscribed=1`,
       cancel_url: `${origin}/premium`,
     });

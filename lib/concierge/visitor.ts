@@ -1,7 +1,7 @@
 import "server-only";
 import { currentCustomer } from "@/lib/account";
 import { PREMIUM_ALLOWANCE, type PremiumKind } from "@/lib/pricing";
-import { getAllowance, getSubscription, membershipState, type MembershipState } from "@/lib/subscriptions";
+import { getAllowance, getSubscription, membershipState, planOf, type MembershipState } from "@/lib/subscriptions";
 
 /**
  * What Susan may know about the visitor she's talking to: only their own
@@ -13,6 +13,9 @@ export type VisitorContext = {
   emailConfirmed: boolean;
   membership: {
     state: MembershipState;
+    plan: "monthly" | "yearly";
+    /** When the current 30-day allowance resets. */
+    allowanceResets: string | null;
     /** Next payment (active), end of access (cancelling) or when it ended. */
     date: string;
     left: Record<PremiumKind, number> | null;
@@ -34,6 +37,8 @@ export async function loadVisitorContext(): Promise<VisitorContext> {
       emailConfirmed: customer.emailConfirmed,
       membership: {
         state,
+        plan: await planOf(sub),
+        allowanceResets: allowance ? allowance.resetsAt.slice(0, 10) : null,
         date: (state === "expired" ? (sub.ended_at ?? sub.current_period_end) : sub.current_period_end).slice(0, 10),
         left: allowance
           ? {
@@ -67,7 +72,9 @@ export function describeVisitor(v: VisitorContext) {
     premium: v.membership
       ? {
           status: STATE_WORDS[v.membership.state],
+          plan: v.membership.plan === "yearly" ? "yearly, £225 a year" : "monthly, £25 every 30 days",
           date: v.membership.date,
+          allowanceResets: v.membership.allowanceResets,
           leftThisPeriod: v.membership.left,
           allowancePerPeriod: PREMIUM_ALLOWANCE,
         }

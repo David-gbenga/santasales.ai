@@ -22,6 +22,11 @@ export function getStripe(): Stripe {
   return stripe;
 }
 
-/** Shown above the subscribe button: renewal terms and immediate-access consent. */
-export const PREMIUM_CONSENT_TEXT =
-  "GiftPost Premium renews automatically every 30 days at £25 until you cancel. Cancel any time in My account; you keep access until the end of the period you've paid for. By subscribing, you ask for immediate access to the service.";
+const CONSENT_TAIL =
+  "until you cancel. Cancel any time in My account; you keep access until the end of the period you've paid for. By subscribing, you ask for immediate access to the service.";
+
+/** Shown above the subscribe button: renewal terms and immediate-access consent, per plan. */
+export const PREMIUM_CONSENT_TEXT = {
+  monthly: `GiftPost Premium renews automatically every 30 days at £25 ${CONSENT_TAIL}`,
+  yearly: `GiftPost Premium yearly renews automatically once a year at £225 ${CONSENT_TAIL} Your allowance resets every 30 days.`,
+} as const;

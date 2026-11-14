@@ -84,7 +84,7 @@ export type ConciergeReply = {
  * button wording. Keys are what the model chooses from.
  */
 export const SITE_LINKS = {
-  premium: { href: "/premium", label: "See GiftPost Premium", description: "£25 every 30 days, cancel any time" },
+  premium: { href: "/premium", label: "See GiftPost Premium", description: "£25 every 30 days or £225 a year" },
   signup: { href: "/signup", label: "Create an account", description: "Needed only for Premium" },
   login: { href: "/login", label: "Sign in" },
   account: { href: "/account", label: "Go to My account", description: "Membership, your cards and songs" },

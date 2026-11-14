@@ -1,7 +1,8 @@
 // One-off, idempotent Stripe setup for GiftPost Premium (docs/SUBSCRIPTIONS.md).
 // Creates, in whichever mode STRIPE_SECRET_KEY is for:
-//   - the "GiftPost Premium" product and a £25 GBP price renewing every 30 days,
-//     found by lookup key `giftpost_premium_30d` (the app never uses a price ID);
+//   - the monthly (£25 every 30 days, `giftpost_premium_30d`) and yearly
+//     (£225 a year, `giftpost_premium_yearly`) products and prices, found by
+//     lookup key (the app never uses a price ID);
 //   - a Customer Portal configuration (update card, invoices, cancel at period end).
 // Run again safely: existing objects are reused.
 //
@@ -23,29 +24,49 @@ const site = (env.NEXT_PUBLIC_SITE_URL || "https://www.giftpost.co.uk").replace(
 const stripe = new Stripe(key);
 const mode = key.startsWith("sk_live_") ? "LIVE" : "test";
 
-const LOOKUP_KEY = "giftpost_premium_30d"; // keep in step with lib/pricing.ts
-
-const existing = await stripe.prices.list({ lookup_keys: [LOOKUP_KEY], active: true, expand: ["data.product"] });
-let price = existing.data[0];
-if (price) {
-  console.log(`[${mode}] price exists: ${price.id}`);
-} else {
-  const product = await stripe.products.create({
-    name: "GiftPost Premium",
+// Keep in step with PREMIUM_PLANS in lib/pricing.ts.
+const PLANS = [
+  {
+    lookupKey: "giftpost_premium_30d",
+    productName: "GiftPost Premium",
     description:
       "Each 30 days: 15 personal songs, 30 personal cards and 10 voice greetings. Renews automatically; cancel any time.",
+    unitAmount: 2500,
+    recurring: { interval: "day", interval_count: 30 },
+    nickname: "£25 every 30 days",
+  },
+  {
+    lookupKey: "giftpost_premium_yearly",
+    productName: "Giftpost premium yearly subscription", // owner's wording, shown in Checkout
+    description:
+      "£225 a year. Every 30 days: 15 personal songs, 30 personal cards and 10 voice greetings. Renews yearly; cancel any time.",
+    unitAmount: 22500,
+    recurring: { interval: "year", interval_count: 1 },
+    nickname: "£225 a year",
+  },
+];
+
+for (const plan of PLANS) {
+  const existing = await stripe.prices.list({ lookup_keys: [plan.lookupKey], active: true });
+  if (existing.data[0]) {
+    console.log(`[${mode}] ${plan.nickname}: price exists: ${existing.data[0].id}`);
+    continue;
+  }
+  const product = await stripe.products.create({
+    name: plan.productName,
+    description: plan.description,
     metadata: { giftpost: "premium" },
   });
-  price = await stripe.prices.create({
+  const price = await stripe.prices.create({
     product: product.id,
     currency: "gbp",
-    unit_amount: 2500,
-    recurring: { interval: "day", interval_count: 30 },
-    lookup_key: LOOKUP_KEY,
-    nickname: "£25 every 30 days",
+    unit_amount: plan.unitAmount,
+    recurring: plan.recurring,
+    lookup_key: plan.lookupKey,
+    nickname: plan.nickname,
     tax_behavior: "unspecified",
   });
-  console.log(`[${mode}] created product ${product.id} and price ${price.id}`);
+  console.log(`[${mode}] ${plan.nickname}: created product ${product.id} and price ${price.id}`);
 }
 
 const configs = await stripe.billingPortal.configurations.list({ active: true, limit: 100 });

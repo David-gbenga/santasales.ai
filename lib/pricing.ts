@@ -41,8 +41,42 @@ export const PREMIUM_PRICE_PENCE = 2500;
 export const PREMIUM_INTERVAL_DAYS = 30;
 /** Stripe Price lookup key; the Price itself is created by scripts/stripe-premium-price.mjs. */
 export const PREMIUM_PRICE_LOOKUP_KEY = "giftpost_premium_30d";
-/** Allowance per billing period (Option B, owner's decision 2026-11-13). Unused items don't roll over. */
+/** Yearly plan (owner's decision 2026-11-14): £225 paid once a year, same benefits. */
+export const PREMIUM_YEARLY_PRICE_PENCE = 22500;
+export const PREMIUM_YEARLY_LOOKUP_KEY = "giftpost_premium_yearly";
+/** Name shown for the yearly plan in Stripe Checkout (owner's wording). */
+export const PREMIUM_YEARLY_PRODUCT_NAME = "Giftpost premium yearly subscription";
+
+export const PREMIUM_PLANS = {
+  monthly: {
+    lookupKey: PREMIUM_PRICE_LOOKUP_KEY,
+    pricePence: PREMIUM_PRICE_PENCE,
+    /** "every 30 days" / "a year": after the price. */
+    period: `every ${PREMIUM_INTERVAL_DAYS} days`,
+    name: "Monthly",
+  },
+  yearly: {
+    lookupKey: PREMIUM_YEARLY_LOOKUP_KEY,
+    pricePence: PREMIUM_YEARLY_PRICE_PENCE,
+    period: "a year",
+    name: "Yearly",
+  },
+} as const;
+export type PremiumPlan = keyof typeof PREMIUM_PLANS;
+export const PREMIUM_PLAN_KEYS = Object.keys(PREMIUM_PLANS) as PremiumPlan[];
+
+/** The plan a Stripe price belongs to, by its lookup key. */
+export function planForLookupKey(lookupKey: string | null | undefined): PremiumPlan | null {
+  return PREMIUM_PLAN_KEYS.find((p) => PREMIUM_PLANS[p].lookupKey === lookupKey) ?? null;
+}
+
+/**
+ * Allowance per 30-day window (Option B, owner's decision 2026-11-13). Unused
+ * items don't roll over. Monthly plans have one window per payment; yearly
+ * plans get a fresh allowance every 30 days through the year (2026-11-14).
+ */
 export const PREMIUM_ALLOWANCE = { song: 15, card: 30, voice_greeting: 10 } as const;
+export const PREMIUM_ALLOWANCE_WINDOW_DAYS = 30;
 export type PremiumKind = keyof typeof PREMIUM_ALLOWANCE;
 /** Daily per-visitor limits on account forms, on top of Supabase Auth's own limits. */
 export const ACCOUNT_LIMITS = { signUp: 5, signIn: 30, passwordReset: 5 } as const;

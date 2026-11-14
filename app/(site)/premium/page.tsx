@@ -3,16 +3,25 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { currentCustomer } from "@/lib/account";
 import { formatPrice } from "@/lib/format";
-import { PREMIUM_ALLOWANCE, PREMIUM_INTERVAL_DAYS, PREMIUM_PRICE_PENCE } from "@/lib/pricing";
+import {
+  PREMIUM_ALLOWANCE,
+  PREMIUM_INTERVAL_DAYS,
+  PREMIUM_PLANS,
+  PREMIUM_PRICE_PENCE,
+  PREMIUM_YEARLY_PRICE_PENCE,
+} from "@/lib/pricing";
 import { displayPrices } from "@/lib/site";
 import { getSubscription, hasAccess } from "@/lib/subscriptions";
 import { startSubscription } from "./actions";
 
 const price = formatPrice(PREMIUM_PRICE_PENCE);
+const yearlyPrice = formatPrice(PREMIUM_YEARLY_PRICE_PENCE);
+/** What a year of the monthly plan costs (365 days ÷ 30-day periods). */
+const yearlySaving = formatPrice(Math.round((365 / PREMIUM_INTERVAL_DAYS) * PREMIUM_PRICE_PENCE) - PREMIUM_YEARLY_PRICE_PENCE);
 
 export const metadata: Metadata = {
   title: "GiftPost Premium",
-  description: `${price} every ${PREMIUM_INTERVAL_DAYS} days: ${PREMIUM_ALLOWANCE.song} personal songs, ${PREMIUM_ALLOWANCE.card} cards and ${PREMIUM_ALLOWANCE.voice_greeting} voice greetings. Cancel any time.`,
+  description: `${price} every ${PREMIUM_INTERVAL_DAYS} days or ${yearlyPrice} a year: ${PREMIUM_ALLOWANCE.song} personal songs, ${PREMIUM_ALLOWANCE.card} cards and ${PREMIUM_ALLOWANCE.voice_greeting} voice greetings. Cancel any time.`,
 };
 
 const buttonClass =
@@ -30,6 +39,7 @@ export default function PremiumPage({ searchParams }: PageProps<"/premium">) {
             list, all month, for one price.
           </p>
           <h2 className="mt-10 font-display text-2xl">Every {PREMIUM_INTERVAL_DAYS} days you get</h2>
+          <p className="mt-1 text-ink-muted">On either plan: the yearly plan gets a fresh allowance every 30 days too.</p>
           <ul className="mt-4 space-y-3 text-lg">
             <li>
               <strong>{PREMIUM_ALLOWANCE.song} personal songs</strong>, any length, sung and ready to
@@ -55,12 +65,22 @@ export default function PremiumPage({ searchParams }: PageProps<"/premium">) {
         </div>
 
         <div className="self-start rounded-2xl border border-line-snow bg-white/70 p-6 sm:p-8">
-          <p className="font-display text-5xl">
-            {price}
-            <span className="ml-2 font-sans text-lg text-ink-muted">every {PREMIUM_INTERVAL_DAYS} days</span>
-          </p>
+          <h2 className="font-display text-2xl">Choose how to pay</h2>
+          <ul className="mt-4 grid gap-3 sm:grid-cols-2" aria-label="Premium plans">
+            <li className="rounded-xl border border-line-snow bg-white p-4">
+              <p className="text-sm font-semibold uppercase tracking-wide text-ink-muted">{PREMIUM_PLANS.monthly.name}</p>
+              <p className="mt-1 font-display text-4xl">{price}</p>
+              <p className="text-ink-muted">every {PREMIUM_INTERVAL_DAYS} days</p>
+            </li>
+            <li className="rounded-xl border-2 border-pine/60 bg-white p-4">
+              <p className="text-sm font-semibold uppercase tracking-wide text-pine">{PREMIUM_PLANS.yearly.name}</p>
+              <p className="mt-1 font-display text-4xl">{yearlyPrice}</p>
+              <p className="text-ink-muted">once a year, paid upfront</p>
+              <p className="mt-1 text-sm font-medium text-pine">Save {yearlySaving} on a year of monthly</p>
+            </li>
+          </ul>
           <ul className="mt-5 space-y-2 text-ink-muted">
-            <li>Renews automatically until you cancel.</li>
+            <li>Same benefits on both. Each renews automatically until you cancel.</li>
             <li>Cancel any time in My account. You keep Premium until the end of the period you&rsquo;ve paid for.</li>
             <li>Payments are handled securely by Stripe.</li>
           </ul>
@@ -131,8 +151,23 @@ async function SubscribeAction({ searchParams }: Pick<PageProps<"/premium">, "se
           Confirm your email address before subscribing.
         </p>
       )}
-      <button type="submit" className={`${buttonClass} w-full`} disabled={!customer.emailConfirmed}>
-        Subscribe for {price}
+      <button
+        type="submit"
+        name="plan"
+        value="monthly"
+        className={`${buttonClass} w-full`}
+        disabled={!customer.emailConfirmed}
+      >
+        Subscribe monthly: {price} every {PREMIUM_INTERVAL_DAYS} days
+      </button>
+      <button
+        type="submit"
+        name="plan"
+        value="yearly"
+        className={`${buttonClass} w-full bg-pine hover:bg-pine/90`}
+        disabled={!customer.emailConfirmed}
+      >
+        Subscribe yearly: {yearlyPrice} a year
       </button>
       <p className="text-center text-sm text-ink-muted">You&rsquo;ll pay on Stripe&rsquo;s secure page.</p>
     </form>

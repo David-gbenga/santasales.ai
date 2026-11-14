@@ -26,7 +26,9 @@ test("Premium shows price, renewal and allowance before sign-up", async ({ page 
   const main = page.locator("main");
   await expect(main).toContainText("£25.00");
   await expect(main).toContainText("every 30 days");
-  await expect(main).toContainText("Renews automatically until you cancel.");
+  await expect(main).toContainText("£225.00");
+  await expect(main).toContainText("once a year, paid upfront");
+  await expect(main).toContainText("Each renews automatically until you cancel.");
   await expect(main).toContainText("15 personal songs");
   await expect(main).toContainText("30 personal cards");
   await expect(main).toContainText("10 voice greetings");
@@ -38,7 +40,8 @@ test("terms explain the membership, renewal and cancelling", async ({ page }) =>
   await page.goto("/terms#premium");
   // The id sits on the heading; check the section around it.
   const section = page.locator("section", { has: page.locator("#premium") });
-  await expect(section).toContainText("renews automatically every 30 days");
+  await expect(section).toContainText("renews automatically");
+  await expect(section).toContainText("once a year on the yearly plan");
   await expect(section).toContainText("Cancelling.");
   await expect(section).toContainText("14-day right to cancel");
 });

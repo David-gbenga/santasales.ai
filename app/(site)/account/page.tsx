@@ -8,6 +8,7 @@ import { getCreations, type Creation } from "@/lib/premium";
 import {
   getAllowance,
   getSubscription,
+  planOf,
   membershipState,
   type MembershipState,
   type SubscriptionRow,
@@ -135,8 +136,9 @@ async function Membership({ subscription }: { subscription: SubscriptionRow | nu
 
   const state = membershipState(subscription);
   const allowance = state === "active" || state === "cancelling" ? await getAllowance(subscription) : null;
+  const plan = await planOf(subscription);
   const rows: [string, string][] = [
-    ["Plan", "GiftPost Premium, £25 every 30 days"],
+    ["Plan", plan === "yearly" ? "GiftPost Premium yearly, £225 a year" : "GiftPost Premium monthly, £25 every 30 days"],
     ["Status", STATE_LABEL[state]],
     ["Member since", formatDate(subscription.created_at)],
   ];
@@ -165,6 +167,11 @@ async function Membership({ subscription }: { subscription: SubscriptionRow | nu
       {allowance && (
         <>
           <h3 className="mt-8 font-display text-xl">Left this period</h3>
+          <p className="mt-1 text-sm text-ink-muted">
+            {plan === "yearly"
+              ? `Your allowance resets every 30 days. Next reset: ${formatDate(allowance.resetsAt)}.`
+              : "Your allowance resets when your membership renews."}
+          </p>
           <ul className="mt-3 grid gap-3 sm:grid-cols-3">
             {(
               [

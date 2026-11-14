@@ -1,7 +1,14 @@
 import "server-only";
 import type Stripe from "stripe";
 import { logAccountEvent, type AccountEventType, type Customer } from "@/lib/account";
-import { PREMIUM_ALLOWANCE, PREMIUM_PRICE_LOOKUP_KEY, type PremiumKind } from "@/lib/pricing";
+import {
+  PREMIUM_ALLOWANCE,
+  PREMIUM_ALLOWANCE_WINDOW_DAYS,
+  PREMIUM_PLANS,
+  planForLookupKey,
+  type PremiumKind,
+  type PremiumPlan,
+} from "@/lib/pricing";
 import { getStripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -58,34 +65,75 @@ export async function getSubscription(userId: string): Promise<SubscriptionRow |
   return rows.find((r) => (LIVE_STATUSES as readonly string[]).includes(r.status)) ?? rows[0] ?? null;
 }
 
-export type Allowance = Record<PremiumKind, { used: number; limit: number }>;
+export type Allowance = Record<PremiumKind, { used: number; limit: number }> & {
+  /** When this allowance window ends (it resets then, or at renewal). */
+  resetsAt: string;
+};
 
-/** Allowance used in the subscription's current billing period. */
+const WINDOW_MS = PREMIUM_ALLOWANCE_WINDOW_DAYS * 86_400_000;
+
+/**
+ * The 30-day allowance window the subscription is in: same arithmetic as
+ * `entitlement_take` in the database. A monthly plan has one window per
+ * payment; a yearly plan has about twelve.
+ */
+export function allowanceWindow(sub: Pick<SubscriptionRow, "current_period_start" | "current_period_end">, now = new Date()) {
+  const start = new Date(sub.current_period_start).getTime();
+  const index = Math.max(0, Math.floor((now.getTime() - start) / WINDOW_MS));
+  const windowStart = new Date(start + index * WINDOW_MS);
+  const windowEnd = new Date(Math.min(windowStart.getTime() + WINDOW_MS, new Date(sub.current_period_end).getTime()));
+  return { start: windowStart.toISOString(), end: windowEnd.toISOString() };
+}
+
+/** Which plan a stored subscription is on (by its Stripe price). */
+export async function planOf(sub: Pick<SubscriptionRow, "price_id">): Promise<PremiumPlan> {
+  const ids = await premiumPriceIds();
+  return (Object.keys(ids) as PremiumPlan[]).find((p) => ids[p] === sub.price_id) ?? "monthly";
+}
+
+/** Allowance used in the subscription's current 30-day window. */
 export async function getAllowance(sub: SubscriptionRow): Promise<Allowance> {
+  const window = allowanceWindow(sub);
   const { data, error } = await createAdminClient()
     .from("entitlement_usage")
     .select("kind, count")
     .eq("subscription_id", sub.id)
-    .eq("period_start", sub.current_period_start);
+    .gte("period_start", window.start)
+    .lt("period_start", new Date(new Date(window.start).getTime() + 1000).toISOString());
   if (error) throw new Error(`Loading allowance failed: ${error.message}`);
   const used = Object.fromEntries((data ?? []).map((r) => [r.kind, r.count as number]));
   return {
     song: { used: used.song ?? 0, limit: PREMIUM_ALLOWANCE.song },
     card: { used: used.card ?? 0, limit: PREMIUM_ALLOWANCE.card },
     voice_greeting: { used: used.voice_greeting ?? 0, limit: PREMIUM_ALLOWANCE.voice_greeting },
+    resetsAt: window.end,
   };
 }
 
-let cachedPriceId: string | undefined;
+let cachedPriceIds: Record<PremiumPlan, string> | undefined;
 
-/** The Premium price, found by lookup key (created by scripts/stripe-premium-price.mjs). */
-export async function premiumPriceId(): Promise<string> {
-  if (cachedPriceId) return cachedPriceId;
-  const prices = await getStripe().prices.list({ lookup_keys: [PREMIUM_PRICE_LOOKUP_KEY], active: true, limit: 1 });
-  const price = prices.data[0];
-  if (!price) throw new Error(`No active Stripe price with lookup key ${PREMIUM_PRICE_LOOKUP_KEY}`);
-  cachedPriceId = price.id;
-  return price.id;
+/** Both Premium prices, found by lookup key (created by scripts/stripe-premium-price.mjs). */
+export async function premiumPriceIds(): Promise<Record<PremiumPlan, string>> {
+  if (cachedPriceIds) return cachedPriceIds;
+  const plans = Object.keys(PREMIUM_PLANS) as PremiumPlan[];
+  const prices = await getStripe().prices.list({
+    lookup_keys: plans.map((p) => PREMIUM_PLANS[p].lookupKey),
+    active: true,
+    limit: 10,
+  });
+  const ids = {} as Record<PremiumPlan, string>;
+  for (const plan of plans) {
+    const price = prices.data.find((x) => x.lookup_key === PREMIUM_PLANS[plan].lookupKey);
+    if (!price) throw new Error(`No active Stripe price with lookup key ${PREMIUM_PLANS[plan].lookupKey}`);
+    ids[plan] = price.id;
+  }
+  cachedPriceIds = ids;
+  return ids;
+}
+
+/** The Stripe price for one plan. */
+export async function premiumPriceId(plan: PremiumPlan = "monthly"): Promise<string> {
+  return (await premiumPriceIds())[plan];
 }
 
 let cachedPortalConfig: string | undefined;
@@ -158,9 +206,8 @@ export type SyncResult = { row: SubscriptionRow; previous: SubscriptionRow | nul
 export async function syncSubscription(subscriptionId: string): Promise<SyncResult> {
   const stripe = getStripe();
   const sub = await stripe.subscriptions.retrieve(subscriptionId);
-  const premiumPrice = await premiumPriceId();
-  const item = sub.items.data.find((i) => i.price.id === premiumPrice) ?? sub.items.data[0];
-  if (!item || item.price.lookup_key !== PREMIUM_PRICE_LOOKUP_KEY) {
+  const item = sub.items.data.find((i) => planForLookupKey(i.price.lookup_key)) ?? sub.items.data[0];
+  if (!item || !planForLookupKey(item.price.lookup_key)) {
     console.warn("[subscriptions] ignoring a subscription that isn't Premium", sub.id);
     return null;
   }

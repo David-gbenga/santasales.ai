@@ -7,6 +7,7 @@ import {
   PREMIUM_ALLOWANCE,
   PREMIUM_INTERVAL_DAYS,
   PREMIUM_PRICE_PENCE,
+  PREMIUM_YEARLY_PRICE_PENCE,
   PREVIEW_LIMITS,
 } from "@/lib/pricing";
 import { seller, site } from "@/lib/site";
@@ -231,7 +232,10 @@ export default function TermsPage() {
         <List>
           <li>
             <strong>What you get.</strong> GiftPost Premium costs {formatPrice(PREMIUM_PRICE_PENCE)}{" "}
-            every {PREMIUM_INTERVAL_DAYS} days. In each {PREMIUM_INTERVAL_DAYS}-day period you can
+            every {PREMIUM_INTERVAL_DAYS} days (monthly plan), or {formatPrice(PREMIUM_YEARLY_PRICE_PENCE)}{" "}
+            paid once a year (yearly plan). Both plans have the same benefits. In each{" "}
+            {PREMIUM_INTERVAL_DAYS}-day period (on the yearly plan, every {PREMIUM_INTERVAL_DAYS}{" "}
+            days from the day you join or renew) you can
             make up to {PREMIUM_ALLOWANCE.song} personal songs (any length),{" "}
             {PREMIUM_ALLOWANCE.card} personal cards and {PREMIUM_ALLOWANCE.voice_greeting} voice
             greetings on your own cards and songs. Each one comes with the same rewrites, editing
@@ -246,8 +250,9 @@ export default function TermsPage() {
           </li>
           <li>
             <strong>Payment and renewal.</strong> You pay through Stripe when you join, and your
-            membership <strong>renews automatically every {PREMIUM_INTERVAL_DAYS} days</strong> at
-            the same price, charged to the same card, until you cancel. Stripe emails you a receipt
+            membership <strong>renews automatically</strong> (every {PREMIUM_INTERVAL_DAYS} days on
+            the monthly plan, once a year on the yearly plan) at the same price, charged to the
+            same card, until you cancel. Stripe emails you a receipt
             for each payment. If we ever change the price, we&rsquo;ll email you at least 30 days
             before it applies, and you can cancel before then.
           </li>
@@ -265,7 +270,9 @@ export default function TermsPage() {
             start straight away. You can still cancel within 14 days of first joining by emailing
             us. If you haven&rsquo;t made anything with Premium yet, we refund you in full. If you
             have, we refund the share of your first payment that matches the allowance you
-            haven&rsquo;t used.
+            haven&rsquo;t used (on the yearly plan, counted against the whole year&rsquo;s
+            allowance). To change between monthly and yearly, cancel your current plan and join
+            the other once it ends.
           </li>
           <li>
             <strong>If a payment fails.</strong> Stripe will try your card again over the following
