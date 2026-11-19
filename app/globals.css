@@ -93,3 +93,24 @@ body {
 .bg-white {
   color-scheme: light;
 }
+
+/* Susan's hello bubble rises in gently; no movement for reduced-motion users. */
+@keyframes susan-greeting-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.susan-greeting {
+  animation: susan-greeting-in 320ms ease-out both;
+  transform-origin: bottom right;
+}
+@media (prefers-reduced-motion: reduce) {
+  .susan-greeting {
+    animation: none;
+  }
+}
